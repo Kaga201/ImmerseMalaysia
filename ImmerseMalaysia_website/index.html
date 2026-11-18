@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Immerse Malaysia – XR App Prototype (Alpha)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="lib/models.js"></script>
+<script>
+/* Serve the embedded 3D models (lib/models.js) to the 3D viewer from memory, so no network request is needed. */
+(function(){const M=window.KXR_MODELS||{};const cache={};const orig=window.fetch.bind(window);
+window.fetch=function(input,init){try{const url=typeof input==='string'?input:(input&&input.url)||'';const m=url.match(/models\/([a-z-]+)\.glb(?:[?#]|$)/);
+if(m&&M[m[1]]){if(!cache[m[1]]){const b=atob(M[m[1]]);const u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);cache[m[1]]=u.buffer;}
+const buf=cache[m[1]].slice(0);return Promise.resolve(new Response(buf,{status:200,headers:{'Content-Type':'model/gltf-binary','Content-Length':String(buf.byteLength)}}));}}catch(e){}
+return orig(input,init);};})();
+</script>
+<script src="lib/aframe.min.js"></script>
+<script src="lib/model-viewer.min.js"></script>
+<style>
+:root{
+  --bg:#eef3fa; --card:#ffffff; --ink:#0f1b2d; --muted:#5d6c82; --line:#e3e9f2;
+  --primary:#1f6fd1; --primary-dk:#0d4fa3; --primary-lt:#e6f0fc;
+  --accent:#ffb21e; --ok:#16a06a; --ok-lt:#e3f6ee; --bad:#d64545; --bad-lt:#fdecec;
+  --radius:18px; --shadow:0 6px 22px rgba(18,42,82,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);
+  background:radial-gradient(1200px 600px at 20% 0%,#dbe8fb 0%,transparent 60%),radial-gradient(900px 500px at 100% 100%,#fdeccc 0%,transparent 55%),#e9eef6;
+  display:flex;justify-content:center;align-items:center;min-height:100vh}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input{font-family:inherit}
+.app{position:relative;width:100%;max-width:420px;height:100vh;background:var(--bg);display:flex;flex-direction:column;overflow:hidden}
+@media (min-width:520px){.app{height:min(880px,calc(100vh - 40px));border-radius:32px;box-shadow:0 30px 80px rgba(16,38,77,.25),0 0 0 10px #0f1b2d}}
+main{flex:1;overflow-y:auto;overflow-x:hidden;padding:0 18px 96px}
+.view{display:none;animation:fade .25s ease}
+.view.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* header */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:18px 0 10px}
+.brand{display:flex;align-items:center;gap:10px}
+.logo{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,#1f6fd1,#14b8a6);display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px;letter-spacing:-.5px;box-shadow:0 6px 14px rgba(31,111,209,.35)}
+.brand small{display:block;font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.3px;text-transform:uppercase}
+.brand b{font-size:18px;font-weight:800;letter-spacing:-.3px}
+.avatar{width:38px;height:38px;border-radius:50%;background:#ffd98a;display:grid;place-items:center;font-weight:800;font-size:14px;color:#7a4b00}
+.backbar{display:flex;align-items:center;gap:10px;padding:16px 0 10px}
+.iconbtn{width:40px;height:40px;border-radius:12px;background:var(--card);display:grid;place-items:center;box-shadow:var(--shadow)}
+.backbar h2{font-size:18px;font-weight:800;letter-spacing:-.3px}
+.backbar p{font-size:12px;color:var(--muted);font-weight:600}
+
+h1{font-size:24px;font-weight:800;letter-spacing:-.5px;line-height:1.2}
+.hello p{color:var(--muted);font-size:14px;margin-top:4px}
+.section-title{display:flex;justify-content:space-between;align-items:baseline;margin:22px 2px 10px}
+.section-title h3{font-size:16px;font-weight:800}
+.section-title span{font-size:12px;color:var(--muted);font-weight:600}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;background:var(--primary-lt);color:var(--primary-dk)}
+.chip.amber{background:#fff3d6;color:#8a5a00}.chip.green{background:var(--ok-lt);color:#0b6b45}.chip.purple{background:#efe7fb;color:#5b2fa3}.chip.dark{background:#0f1b2d;color:#fff}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:14px;border-radius:14px;padding:13px 16px;transition:transform .08s ease,background .2s}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:var(--primary);color:#fff;box-shadow:0 8px 18px rgba(31,111,209,.3)}
+.btn.primary:hover{background:var(--primary-dk)}
+.btn.ghost{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+.btn.soft{background:var(--primary-lt);color:var(--primary-dk)}
+.btn.block{width:100%}
+.btn[disabled]{opacity:.45;pointer-events:none}
+
+/* join card */
+.join{margin-top:18px;background:linear-gradient(135deg,#1f6fd1 0%,#1557b0 60%,#0e3f86 100%);color:#fff;border-radius:22px;padding:18px;position:relative;overflow:hidden}
+.join::after{content:"";position:absolute;right:-40px;top:-40px;width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,.08)}
+.join h4{font-size:15px;font-weight:800}
+.join p{font-size:12.5px;opacity:.85;margin:4px 0 12px}
+.join form{display:flex;gap:8px;position:relative;z-index:1}
+.join input{flex:1;min-width:0;border:none;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:700;letter-spacing:1px;text-transform:uppercase;outline:none}
+.join input::placeholder{letter-spacing:0;text-transform:none;font-weight:500;color:#8a97ab}
+.join .btn{background:var(--accent);color:#3d2700;padding:12px 16px}
+.joined{display:none;margin-top:12px;background:rgba(255,255,255,.14);border-radius:12px;padding:10px 12px;font-size:12.5px;font-weight:600;position:relative;z-index:1}
+.joined.show{display:block}
+.join .err{color:#ffd2d2;font-size:12px;margin-top:8px;display:none;position:relative;z-index:1}
+
+/* lesson cards */
+.lesson-list{display:grid;gap:12px}
+.lcard{display:flex;gap:14px;align-items:center;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px;text-align:left;width:100%}
+.thumb{width:74px;height:74px;border-radius:16px;flex-shrink:0;display:grid;place-items:center}
+.thumb svg{width:56px;height:56px}
+.lcard .meta{flex:1;min-width:0}
+.lcard h4{font-size:15px;font-weight:800;margin:5px 0 3px}
+.lcard p{font-size:12px;color:var(--muted)}
+.bar{height:6px;border-radius:6px;background:#e7edf5;margin-top:8px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--primary);border-radius:6px}
+.labcard{margin-top:12px;display:flex;gap:14px;align-items:center;width:100%;text-align:left;border-radius:22px;padding:16px;color:#fff;background:linear-gradient(135deg,#10233f,#1b3d6b);box-shadow:0 12px 26px rgba(16,35,63,.3)}
+.labcard h4{font-size:16px;font-weight:800;margin:6px 0 3px}
+.labcard p{font-size:12px;opacity:.8}
+.labcard .thumb{background:rgba(255,255,255,.08)}
+
+/* bottom nav */
+nav.tabs{position:absolute;left:12px;right:12px;bottom:12px;height:66px;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);border-radius:22px;box-shadow:0 10px 30px rgba(18,42,82,.16);display:flex;justify-content:space-around;align-items:center;z-index:30}
+nav.tabs a{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:700;color:#8a97ab;text-decoration:none;padding:6px 6px;border-radius:14px}
+nav.tabs a svg{width:22px;height:22px}
+nav.tabs a.on{color:var(--primary)}
+nav.tabs a.on svg{transform:translateY(-1px)}
+
+/* model viewer */
+.mvwrap{position:relative;border-radius:22px;overflow:hidden;background:radial-gradient(circle at 50% 35%,#ffffff 0%,#e3ecf7 70%);box-shadow:var(--shadow)}
+model-viewer{width:100%;height:340px;--poster-color:transparent;--progress-bar-color:var(--primary)}
+.mvwrap.dark{background:radial-gradient(circle at 50% 40%,#22345a 0%,#0b1426 75%)}
+.hotspot{background:#fff;border-radius:999px;border:2px solid var(--primary);width:14px;height:14px;padding:0;position:relative;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.hotspot .hs{position:absolute;left:18px;top:50%;transform:translateY(-50%);white-space:nowrap;background:rgba(15,27,45,.88);color:#fff;font-size:11px;font-weight:700;padding:4px 8px;border-radius:8px;pointer-events:none}
+.hotspot.l .hs{left:auto;right:18px}
+.nolabels .hotspot{display:none}
+.mvtools{display:flex;gap:8px;margin-top:12px}
+.mvtools .btn{flex:1;padding:12px 10px;font-size:13px}
+.hint{position:absolute;left:12px;top:12px;font-size:11px;font-weight:700;background:rgba(255,255,255,.9);color:var(--muted);padding:5px 9px;border-radius:999px;display:flex;gap:6px;align-items:center}
+.mvwrap.dark .hint{background:rgba(255,255,255,.12);color:#d6e2f5}
+.facts{display:grid;gap:10px;margin-top:4px}
+.fact{display:flex;gap:12px;align-items:flex-start;background:var(--card);border-radius:16px;padding:12px 14px;box-shadow:var(--shadow);font-size:13.5px;line-height:1.45}
+.fact b{display:grid;place-items:center;flex-shrink:0;width:26px;height:26px;border-radius:8px;background:var(--primary-lt);color:var(--primary-dk);font-size:12px}
+.lessonhead{display:flex;gap:6px;flex-wrap:wrap;margin:-2px 0 12px}
+
+/* AR preview */
+.arview{position:absolute;inset:0;z-index:50;display:none;background:#1a1a1a;color:#fff}
+.arview.active{display:block}
+.camfeed{position:absolute;inset:0;background:
+  linear-gradient(180deg,rgba(0,0,0,.25),transparent 18%,transparent 70%,rgba(0,0,0,.35)),
+  linear-gradient(180deg,#c9d1d9 0%,#b8c1ca 46%,#7a5332 46.2%,#8d6038 60%,#a26f42 100%)}
+.camfeed::before{content:"";position:absolute;left:0;right:0;top:46%;bottom:0;background:repeating-linear-gradient(98deg,rgba(255,255,255,.04) 0 6px,rgba(0,0,0,.05) 6px 13px);}
+.camfeed::after{content:"";position:absolute;left:8%;top:12%;width:34%;height:26%;border-radius:6px;background:linear-gradient(135deg,#eaf3ff,#cfdff2);box-shadow:0 0 0 6px #e9edf1;opacity:.65}
+.arview model-viewer{position:absolute;inset:0;width:100%;height:100%;background:transparent;opacity:0;transition:opacity .5s ease}
+.arview.placed model-viewer{opacity:1}
+.reticle{position:absolute;left:50%;top:64%;width:120px;height:44px;margin:-22px 0 0 -60px;border:3px solid rgba(255,255,255,.95);border-radius:50%;box-shadow:0 0 0 2px rgba(31,111,209,.6);opacity:0;transition:opacity .4s}
+.arview.found .reticle{opacity:1;animation:pulse 1.4s infinite}
+.arview.placed .reticle{opacity:0}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.artop{position:absolute;left:0;right:0;top:0;padding:16px;display:flex;align-items:center;gap:10px;z-index:3}
+.artop .iconbtn{background:rgba(0,0,0,.45);color:#fff;box-shadow:none}
+.artop h3{font-size:15px;font-weight:800;text-shadow:0 1px 4px rgba(0,0,0,.5)}
+.artop .chip{margin-left:auto;background:rgba(0,0,0,.5);color:#fff}
+.arnote{position:absolute;left:16px;right:16px;top:70px;z-index:3;background:rgba(15,27,45,.78);border-radius:12px;padding:9px 12px;font-size:11.5px;line-height:1.4;color:#dfe8f6}
+.arbottom{position:absolute;left:0;right:0;bottom:0;padding:18px 16px 22px;z-index:3;display:flex;flex-direction:column;gap:12px;align-items:center}
+.arpill{background:rgba(0,0,0,.6);padding:10px 16px;border-radius:999px;font-size:13px;font-weight:700;display:flex;gap:8px;align-items:center}
+.arbtns{display:flex;gap:10px;width:100%}
+.arbtns .btn{flex:1;background:rgba(255,255,255,.92);color:var(--ink)}
+.arbtns .btn.primary{background:var(--primary);color:#fff}
+
+/* lab */
+.labscene{height:330px;border-radius:22px;overflow:hidden;position:relative;box-shadow:var(--shadow);background:#dfe7f1}
+.labscene a-scene{width:100%;height:100%}
+.phpanel{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.stat{background:var(--card);border-radius:16px;padding:12px 14px;box-shadow:var(--shadow)}
+.stat small{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.stat b{font-size:26px;font-weight:800;letter-spacing:-.5px}
+.swatch{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:middle;margin-right:6px;box-shadow:inset 0 0 0 2px rgba(0,0,0,.08)}
+.labbtns{display:flex;gap:8px;margin-top:12px}
+.labbtns .btn{flex:1;padding:12px 8px;font-size:13px}
+.curve{margin-top:12px}
+.curve svg{width:100%;height:150px;display:block}
+.success{display:none;margin-top:12px;background:var(--ok-lt);color:#0b5c3c;border-radius:16px;padding:12px 14px;font-size:13px;line-height:1.45}
+.success.show{display:block}
+.scale{display:flex;height:10px;border-radius:6px;overflow:hidden;margin-top:8px}
+.scale i{flex:1}
+
+/* quiz */
+.qprog{display:flex;gap:6px;margin:4px 0 16px}
+.qprog i{flex:1;height:6px;border-radius:6px;background:#dbe3ee}
+.qprog i.done{background:var(--primary)}
+.qcard h3{font-size:18px;font-weight:800;line-height:1.35;margin-bottom:16px}
+.opt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--card);border:2px solid var(--line);border-radius:16px;padding:14px;margin-bottom:10px;font-size:14px;font-weight:600}
+.opt span{width:28px;height:28px;border-radius:9px;background:#f0f4fa;display:grid;place-items:center;font-weight:800;font-size:12px;color:var(--muted);flex-shrink:0}
+.opt.correct{border-color:var(--ok);background:var(--ok-lt)}.opt.correct span{background:var(--ok);color:#fff}
+.opt.wrong{border-color:var(--bad);background:var(--bad-lt)}.opt.wrong span{background:var(--bad);color:#fff}
+.explain{display:none;font-size:13px;line-height:1.5;background:#f6f8fc;border-radius:14px;padding:12px 14px;margin:4px 0 14px;color:#33445c}
+.explain.show{display:block}
+.result{text-align:center;padding:26px 18px}
+.ring{width:130px;height:130px;margin:6px auto 14px;border-radius:50%;display:grid;place-items:center}
+.ring div{width:104px;height:104px;border-radius:50%;background:var(--bg);display:grid;place-items:center;font-size:30px;font-weight:800}
+.badgebig{display:inline-flex;align-items:center;gap:8px;margin:14px 0 4px;background:#fff3d6;color:#7a4b00;padding:8px 14px;border-radius:999px;font-weight:800;font-size:13px}
+
+/* class (teacher) */
+.session{background:linear-gradient(135deg,#0f2747,#16457d);color:#fff;border-radius:22px;padding:18px}
+.session .code{font-size:30px;font-weight:800;letter-spacing:3px;margin:6px 0 2px}
+.session .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.session .btn{background:rgba(255,255,255,.14);color:#fff;padding:9px 12px;font-size:12px}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;background:rgba(22,160,106,.25);color:#7ff0bf;padding:4px 9px;border-radius:999px}
+.live i{width:7px;height:7px;border-radius:50%;background:#33e09a;animation:blink 1.2s infinite}
+@keyframes blink{50%{opacity:.25}}
+.joinbar{height:8px;background:rgba(255,255,255,.15);border-radius:8px;margin-top:10px;overflow:hidden}
+.joinbar i{display:block;height:100%;background:#33e09a;border-radius:8px}
+.ctrlgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ctrl{background:var(--card);border-radius:16px;box-shadow:var(--shadow);padding:14px;text-align:left}
+.ctrl b{display:block;font-size:13.5px;margin-top:8px}
+.ctrl small{font-size:11.5px;color:var(--muted)}
+.ctrl .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--primary-lt);color:var(--primary-dk)}
+.ctrl.on{background:#0f1b2d;color:#fff}.ctrl.on small{color:#b6c3d6}.ctrl.on .ic{background:rgba(255,255,255,.12);color:#fff}
+select{font-family:inherit;width:100%;padding:12px;border-radius:12px;border:2px solid var(--line);font-size:14px;font-weight:600;background:#fff;color:var(--ink)}
+.qbars{display:grid;gap:10px}
+.qbar{font-size:12.5px;font-weight:600}
+.qbar .t{display:flex;justify-content:space-between;margin-bottom:5px}
+.qbar .track{height:10px;border-radius:8px;background:#e7edf5;overflow:hidden}
+.qbar .track i{display:block;height:100%;border-radius:8px;width:0;transition:width 1s ease}
+.students{display:grid;gap:8px}
+.st{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:14px;padding:10px 12px;box-shadow:var(--shadow);font-size:13px;font-weight:600}
+.st .ini{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-size:11.5px;font-weight:800}
+.st .s{margin-left:auto;font-size:11.5px;font-weight:700;display:flex;align-items:center;gap:6px;color:var(--muted)}
+.st .s i{width:8px;height:8px;border-radius:50%}
+.sample{font-size:11px;color:var(--muted);text-align:center;margin-top:14px}
+
+/* me */
+.profile{display:flex;gap:14px;align-items:center}
+.profile .avatar{width:62px;height:62px;font-size:22px}
+.profile h2{font-size:19px;font-weight:800}
+.profile p{font-size:12.5px;color:var(--muted);font-weight:600}
+.statsrow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}
+.statsrow .stat{text-align:center;padding:12px 6px}
+.statsrow .stat b{font-size:22px}
+.badges{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.bdg{text-align:center;font-size:10.5px;font-weight:700;color:var(--muted)}
+.bdg .ico{width:58px;height:58px;margin:0 auto 6px;border-radius:18px;display:grid;place-items:center;background:#e4eaf2;filter:grayscale(1);opacity:.55}
+.bdg.got .ico{filter:none;opacity:1;box-shadow:0 6px 14px rgba(0,0,0,.12)}
+.bdg.got{color:var(--ink)}
+.bdg .ico svg{width:30px;height:30px}
+.setting{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 0;border-bottom:1px solid var(--line);font-size:14px;font-weight:600}
+.setting:last-child{border-bottom:none}
+.setting small{display:block;font-size:11.5px;color:var(--muted);font-weight:500;margin-top:2px}
+.switch{width:46px;height:28px;border-radius:999px;background:#cfd8e4;position:relative;flex-shrink:0;transition:background .2s}
+.switch::after{content:"";position:absolute;left:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:left .2s}
+.switch.on{background:var(--primary)}.switch.on::after{left:21px}
+
+.toast{position:absolute;left:50%;bottom:92px;transform:translate(-50%,20px);background:#0f1b2d;color:#fff;font-size:13px;font-weight:700;padding:11px 16px;border-radius:14px;opacity:0;pointer-events:none;transition:all .25s;z-index:80;white-space:nowrap;max-width:90%;overflow:hidden;text-overflow:ellipsis}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.spacer{height:14px}
+
+/* ---- hub ---- */
+.alertstrip{display:flex;gap:12px;align-items:center;margin-top:16px;padding:12px 14px;border-radius:18px;background:#fff4e5;border:1.5px solid #ffd59a;color:#7a3e00;text-decoration:none}
+.alertstrip .aic{width:38px;height:38px;border-radius:12px;background:#d35400;color:#fff;display:grid;place-items:center;flex-shrink:0}
+.alertstrip b{display:block;font-size:13.5px}.alertstrip small{font-size:12px;opacity:.85;line-height:1.35;display:block}
+.hub{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{position:relative;display:block;background:var(--card);border-radius:20px;box-shadow:var(--shadow);padding:14px;text-decoration:none;color:var(--ink);min-height:128px}
+.tile.wide{grid-column:span 2;display:flex;gap:12px;align-items:center;min-height:auto}
+.tile b{display:block;font-size:15px;font-weight:800;margin-top:10px}.tile.wide b{margin-top:0}
+.tile small{display:block;font-size:11.5px;color:var(--muted);font-weight:600;margin-top:3px;line-height:1.35}
+.tile .ti{position:absolute;right:12px;top:12px;width:22px;height:22px;border-radius:7px;background:var(--l);color:var(--c);font-size:11px;font-weight:800;display:grid;place-items:center}
+.tic{width:44px;height:44px;border-radius:14px;background:var(--l);color:var(--c);display:grid;place-items:center}
+.tic svg{width:24px;height:24px}
+.infoline{display:flex;gap:10px;align-items:center;margin-top:12px;font-size:12.5px;color:var(--muted);font-weight:600;padding:12px 14px}
+/* ---- segmented ---- */
+.seg{display:flex;background:#e2e9f3;border-radius:14px;padding:4px;gap:4px}
+.seg button{flex:1;padding:9px 6px;border-radius:11px;font-size:12.5px;font-weight:700;color:var(--muted)}
+.seg button.on{background:#fff;color:var(--ink);box-shadow:0 2px 8px rgba(18,42,82,.1)}
+/* ---- heritage ---- */
+.eranote{font-size:13px;line-height:1.5;color:#33445c;margin-top:10px;padding:0 2px}
+.langs{display:flex;gap:4px}
+.langs button{font-size:11.5px;font-weight:700;padding:5px 8px;border-radius:8px;background:#f0f4fa;color:var(--muted)}
+.langs button.on{background:var(--primary);color:#fff}
+.player{display:flex;gap:12px;align-items:center;margin-top:10px}
+.play{width:44px;height:44px;border-radius:50%;background:#c0392b;color:#fff;display:grid;place-items:center;flex-shrink:0;box-shadow:0 6px 14px rgba(192,57,43,.3)}
+.transcript{font-size:12.5px;line-height:1.5;color:#33445c;margin-top:10px;background:#f6f8fc;border-radius:12px;padding:10px 12px}
+/* ---- wellness ---- */
+.moods{display:flex;justify-content:space-between;margin-top:10px}
+.moods button{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10.5px;font-weight:700;color:var(--muted);padding:6px 4px;border-radius:12px;width:19%}
+.moods button svg{width:38px;height:38px}
+.moods button.on{background:#e0f5f0;color:#0d6b58}
+.support{display:none;margin-top:10px;background:#fff8e8;border:1.5px solid #ffe0a3;border-radius:16px;padding:12px 14px;font-size:13px;line-height:1.5}
+.support.show{display:block}
+.scenes{display:flex;gap:8px;overflow-x:auto}
+.scenes button{flex-shrink:0;padding:9px 12px;border-radius:12px;font-size:12.5px;font-weight:700;background:var(--card);box-shadow:var(--shadow);color:var(--muted)}
+.scenes button.on{background:#17a589;color:#fff}
+.pano{position:relative;height:280px;border-radius:22px;overflow:hidden;margin-top:12px;box-shadow:var(--shadow);touch-action:pan-y;cursor:grab;background:#9cc8e8}
+.panoin{position:absolute;left:0;top:0;height:100%;display:flex;will-change:transform}
+.panoin svg{height:100%;width:auto;flex-shrink:0;display:block}
+.orbwrap{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+.orb{width:120px;height:120px;border-radius:50%;background:radial-gradient(circle at 35% 35%,rgba(255,255,255,.95),rgba(178,245,229,.75) 45%,rgba(23,165,137,.45) 75%);box-shadow:0 0 40px rgba(255,255,255,.7);transform:scale(.55);transition:transform 4s ease-in-out}
+.orbtxt{position:absolute;font-size:15px;font-weight:800;color:#0b3d33;text-shadow:0 1px 6px rgba(255,255,255,.8)}
+.breathrow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.breathrow>div{background:var(--card);border-radius:16px;padding:11px 14px;box-shadow:var(--shadow)}
+.breathrow small{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.breathrow b{font-size:15px;font-weight:800}
+/* ---- shop ---- */
+.optrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.optrow button,.optrow span{padding:7px 11px;border-radius:10px;font-size:12px;font-weight:700;background:#f0f4fa;color:#33445c;border:2px solid transparent}
+.optrow button.on{border-color:#8e44ad;background:#f6eefb;color:#5b2fa3}
+.optlabel{font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:6px}
+.fitnote{font-size:12px;line-height:1.45;color:#5b4a1f;background:#fff8e8;border-radius:12px;padding:9px 11px;margin-top:12px}
+.sellerstats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.sellerstats div{background:#f6f8fc;border-radius:12px;padding:10px 4px}
+.sellerstats b{display:block;font-size:18px;font-weight:800}.sellerstats small{font-size:11px;color:var(--muted);font-weight:700}
+.pipeline{display:none;margin-top:10px}.pipeline.show{display:grid;gap:8px}
+.pstep{display:flex;gap:10px;align-items:center;font-size:12.5px;font-weight:600;color:#9aa6b6}
+.pstep i{width:18px;height:18px;border-radius:50%;border:2px solid #cfd8e4;flex-shrink:0}
+.pstep.done{color:var(--ink)}.pstep.done i{background:var(--ok);border-color:var(--ok)}
+/* ---- flood ---- */
+.floodalert{background:linear-gradient(135deg,#b84100,#e2672a);color:#fff;border-radius:22px;padding:16px;box-shadow:0 12px 26px rgba(184,65,0,.3)}
+.floodalert .lvl{font-size:11px;font-weight:800;letter-spacing:.6px;background:rgba(255,255,255,.2);padding:4px 9px;border-radius:999px}
+.floodalert h3{font-size:16px;font-weight:800;margin-top:10px}
+.floodalert .big{font-size:30px;font-weight:800;letter-spacing:-.5px}
+.gauge{position:relative;display:flex;height:10px;border-radius:6px;overflow:visible;margin-top:10px}
+.gauge i:first-child{border-radius:6px 0 0 6px}.gauge i:nth-child(4){border-radius:0 6px 6px 0}
+.gauge .mark{position:absolute;top:-5px;width:4px;height:20px;background:#fff;border-radius:2px;box-shadow:0 0 0 2px rgba(0,0,0,.25)}
+.glabels{display:flex;justify-content:space-between;font-size:10px;font-weight:700;opacity:.9;margin-top:6px}
+.fpanel{margin-top:12px}
+.chk{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);font-size:13.5px;font-weight:600;width:100%;text-align:left}
+.chk:last-child{border-bottom:none}
+.chk i{width:22px;height:22px;border-radius:7px;border:2px solid #cfd8e4;flex-shrink:0;display:grid;place-items:center}
+.chk.on i{background:var(--ok);border-color:var(--ok)}
+.chk.on i::after{content:"";width:9px;height:5px;border-left:2.5px solid #fff;border-bottom:2.5px solid #fff;transform:rotate(-45deg) translate(1px,-1px)}
+.waterscene{border-radius:22px;overflow:hidden;box-shadow:var(--shadow);background:#cfe3f3}
+.waterscene svg{display:block;width:100%}
+.wmsg{font-size:13px;line-height:1.5;margin-top:10px;font-weight:600}
+/* ---- AR overlay variants ---- */
+.arview.bg-room .camfeed{background:linear-gradient(180deg,rgba(0,0,0,.2),transparent 18%,transparent 70%,rgba(0,0,0,.3)),linear-gradient(180deg,#efe3d0 0%,#e6d6bd 52%,#b9a58a 52.2%,#c9b598 70%,#d8c6aa 100%)}
+.arview.bg-room .camfeed::before{top:52%;background:repeating-linear-gradient(90deg,rgba(0,0,0,.06) 0 2px,transparent 2px 90px),repeating-linear-gradient(0deg,rgba(0,0,0,.05) 0 2px,transparent 2px 60px)}
+.arview.bg-room .camfeed::after{left:58%;top:20%;width:30%;height:22%;background:linear-gradient(135deg,#a8c9e8,#e8f2fb);box-shadow:0 0 0 7px #fff}
+.arview.bg-site .camfeed{background:linear-gradient(180deg,rgba(0,0,0,.15),transparent 18%,transparent 70%,rgba(0,0,0,.3)),linear-gradient(180deg,#8ec5f0 0%,#cfe6f7 50%,#7fae5f 50.2%,#6f9f52 66%,#9c9284 66.2%,#8a8174 100%)}
+.arview.bg-site .camfeed::before{top:66%;background:repeating-linear-gradient(90deg,transparent 0 46%,rgba(255,255,255,.7) 46% 54%,transparent 54% 100%);background-size:100% 14px;background-repeat:no-repeat;background-position:0 50%}
+.arview.bg-site .camfeed::after{display:none}
+.arview.bg-face .camfeed{background:radial-gradient(circle at 50% 40%,#e9eef4 0%,#c9d3de 70%)}
+.arview.bg-face .camfeed::before,.arview.bg-face .camfeed::after{display:none}
+.facesil{display:none;position:absolute;left:50%;top:30%;width:230px;margin-left:-115px}
+.arview.bg-face .facesil{display:block}
+.arview.bg-face .reticle{display:none}
+.arview.bg-face model-viewer{top:26%;height:17%;bottom:auto;z-index:2}
+.navarrows{display:none;position:absolute;left:0;right:0;top:40%;bottom:24%;align-items:center;flex-direction:column;justify-content:flex-end;gap:6px;opacity:0;transition:opacity .5s}
+.arview.navmode .navarrows{display:flex}
+.arview.navmode.placed .navarrows{opacity:1}
+.arview.navmode model-viewer,.arview.navmode .reticle{display:none}
+.navarrows i{width:0;height:0;border-left:46px solid transparent;border-right:46px solid transparent;border-bottom:34px solid rgba(31,111,209,.85);filter:drop-shadow(0 4px 6px rgba(0,0,0,.3));animation:chev 1.2s infinite}
+.navarrows i:nth-child(1){transform:scale(.55);animation-delay:.4s}.navarrows i:nth-child(2){transform:scale(.75);animation-delay:.2s}
+@keyframes chev{0%,100%{opacity:.35}50%{opacity:1}}
+.navpin{background:#16a06a;color:#fff;font-weight:800;font-size:12px;padding:6px 10px;border-radius:10px;margin-bottom:10px}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+<main id="main">
+
+<!-- ===================== HOME ===================== -->
+<section class="view" id="v-kelas">
+  <div class="topbar">
+    <div class="brand"><a class="iconbtn" href="#home" aria-label="All features"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a><div><small>Feature 2 · Immerse Malaysia</small><b>Learning Lab</b></div></div>
+    <a href="#class" class="chip dark" style="text-decoration:none;padding:7px 11px">Teacher mode</a>
+  </div>
+  <div class="hello">
+    <h1>Selamat pagi, Aisyah!</h1>
+    <p>Ready to explore science in 3D today?</p>
+  </div>
+
+  <div class="join">
+    <h4>Join your teacher’s class</h4>
+    <p>Enter the code shown on the classroom screen.</p>
+    <form id="joinForm" autocomplete="off">
+      <input id="joinCode" placeholder="e.g. LAB-4821" maxlength="8" aria-label="Class code">
+      <button class="btn" type="submit">Join</button>
+    </form>
+    <div class="err" id="joinErr">Code not found. Try <b>LAB-4821</b> (demo class).</div>
+    <div class="joined" id="joined">You joined <b>4 Bestari · Science</b> with Cikgu Farah. Your teacher can now guide your screen.</div>
+  </div>
+
+  <div class="section-title"><h3>3D &amp; AR lessons</h3><span>3 lessons · offline ready</span></div>
+  <div class="lesson-list" id="lessonList"></div>
+
+  <div class="section-title"><h3>Virtual lab</h3><span>VR · WebXR</span></div>
+  <button class="labcard" onclick="go('lab')">
+    <div class="thumb">
+      <svg viewBox="0 0 64 64" fill="none"><path d="M24 8h16M27 8v16L14 48a6 6 0 0 0 5 9h26a6 6 0 0 0 5-9L37 24V8" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 42h26l4 7a3 3 0 0 1-3 4H18a3 3 0 0 1-3-4z" fill="#43c36b"/><circle cx="28" cy="34" r="2.5" fill="#9ff0b8"/><circle cx="35" cy="29" r="1.8" fill="#9ff0b8"/></svg>
+    </div>
+    <div><span class="chip amber">Chemistry · Experiment</span><h4>Acid–Base Neutralisation</h4><p>Add NaOH to HCl and watch the universal indicator change, without any risk.</p></div>
+  </button>
+  <div class="spacer"></div>
+</section>
+
+<!-- ===================== HUB HOME ===================== -->
+<section class="view" id="v-home">
+  <div class="topbar">
+    <div class="brand"><div class="logo">IM</div><div><small>Prototype · alpha</small><b>Immerse Malaysia</b></div></div>
+    <a href="#me" class="avatar" style="text-decoration:none">AR</a>
+  </div>
+  <div class="hello"><h1>Hai, Aisyah!</h1><p>Explore Malaysia in XR. Pick a feature to start.</p></div>
+  <a class="alertstrip" href="#flood">
+    <span class="aic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3L2 20h20z"/><path d="M12 10v4M12 17h.01"/></svg></span>
+    <span><b>Flood warning near you</b><small>Sungai Melati is at Amaran level and rising. Tap for AR water view.</small></span>
+  </a>
+  <div class="section-title"><h3>5 XR features</h3><span>phone · web · headset</span></div>
+  <div class="hub">
+    <a class="tile" href="#heritage" style="--c:#c0392b;--l:#fde9e7"><span class="ti">1</span><div class="tic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 21h18M5 21V10l7-5 7 5v11"/><path d="M9 21v-6h6v6"/></svg></div><b>Heritage Explorer</b><small>Heritage AR · time-travel</small></a>
+    <a class="tile" href="#kelas" style="--c:#2e86c1;--l:#e4f1fb"><span class="ti">2</span><div class="tic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5z"/><path d="M7 11v5c3 2 7 2 10 0v-5"/></svg></div><b>Learning Lab</b><small>3D/AR lessons · VR lab</small></a>
+    <a class="tile" href="#wellness" style="--c:#17a589;--l:#e0f5f0"><span class="ti">3</span><div class="tic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 21c-5-3-8-6.5-8-10.5A4.5 4.5 0 0 1 12 8a4.5 4.5 0 0 1 8 2.5C20 14.5 17 18 12 21z"/></svg></div><b>Calm Space</b><small>VR calm · breathing</small></a>
+    <a class="tile" href="#shop" style="--c:#8e44ad;--l:#f2e8f8"><span class="ti">4</span><div class="tic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 8h14l-1 12H6z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg></div><b>Try-On Market</b><small>AR try-on · local SMEs</small></a>
+    <a class="tile wide" href="#flood" style="--c:#d35400;--l:#fdeee2"><span class="ti">5</span><div class="tic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 16c2 0 2-1.5 4-1.5S8 16 10 16s2-1.5 4-1.5 2 1.5 4 1.5 2-1.5 4-1.5"/><path d="M2 20c2 0 2-1.5 4-1.5S8 20 10 20s2-1.5 4-1.5 2 1.5 4 1.5 2-1.5 4-1.5"/><path d="M12 3l4 6H8z"/></svg></div><div><b>Flood Ready</b><small>Live flood alerts · AR water height · VR drill</small></div></a>
+  </div>
+  <div class="card infoline"><span class="chip green">Offline ready</span><span>All five features work on a phone or browser; a VR headset is optional.</span></div>
+  <div class="spacer"></div>
+</section>
+
+<!-- ===================== F1 HERITAGE ===================== -->
+<section class="view" id="v-heritage">
+  <div class="backbar">
+    <a class="iconbtn" href="#home" aria-label="Back"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <div><h2>Heritage Explorer</h2><p>Melaka Heritage Trail · AR</p></div>
+  </div>
+  <div class="card" style="padding:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="font-size:13.5px">Heritage trail</b><span class="chip" style="background:#fde9e7;color:#9b2c20" id="stampChip">2 of 5 stamps</span></div>
+    <svg id="trailMap" viewBox="0 0 340 150" style="width:100%;display:block;border-radius:12px;background:#eef5e9"></svg>
+  </div>
+  <div class="section-title"><h3>A Famosa · Porta de Santiago</h3><span class="chip green">You are here · 40 m</span></div>
+  <div class="seg" id="eraSeg"><button data-era="1512" class="on">1512 · Portuguese fort</button><button data-era="today">Today</button></div>
+  <div class="mvwrap" style="margin-top:10px">
+    <model-viewer id="mvFort" camera-controls touch-action="pan-y" auto-rotate rotation-per-second="14deg" shadow-intensity="1" exposure="1.05" environment-image="neutral" interaction-prompt="none" camera-orbit="30deg 68deg 105%" ar ar-modes="webxr scene-viewer quick-look" alt="A Famosa fortress model"></model-viewer>
+    <div class="hint">Time-Travel Lens · drag to rotate</div>
+  </div>
+  <p class="eranote" id="eraNote"></p>
+  <div class="card" style="margin-top:10px">
+    <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:13.5px">Audio guide</b><div class="langs" id="langs"><button data-l="en" class="on">EN</button><button data-l="ms">BM</button><button data-l="zh">中文</button><button data-l="ta">தமிழ்</button></div></div>
+    <div class="player"><button class="play" id="playBtn" aria-label="Play audio guide"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5l12 7-12 7z"/></svg></button><div style="flex:1"><div class="bar"><i id="audioBar" style="width:0%"></i></div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:4px;font-weight:600"><span id="audioTime">0:00</span><span>0:20</span></div></div></div>
+    <p class="transcript" id="transcript"></p>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
+    <button class="btn primary" onclick="go('ar-fort')">View in AR on site</button>
+    <button class="btn soft" id="stampBtn">Collect stamp</button>
+  </div>
+  <div class="card infoline" style="margin-top:10px"><span class="chip">Step-free route</span><span>Next stop: Stadthuys · 350 m · avoids stairs</span></div>
+  <div class="spacer"></div>
+</section>
+
+<!-- ===================== F3 WELLNESS ===================== -->
+<section class="view" id="v-wellness">
+  <div class="backbar">
+    <a class="iconbtn" href="#home" aria-label="Back"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <div><h2>Calm Space</h2><p>VR mental wellness · 360°</p></div>
+  </div>
+  <div class="card">
+    <b style="font-size:13.5px">How are you feeling today?</b>
+    <div class="moods" id="moods"></div>
+  </div>
+  <div class="support" id="support"><b>You don’t have to handle this alone.</b> Talking to someone can help. Call <b>Talian HEAL 15555</b> (Ministry of Health) or ask your campus counselling unit. This app does not replace professional care.</div>
+  <div class="section-title"><h3>Choose a calm place</h3><span>headset-ready</span></div>
+  <div class="scenes" id="scenes"><button data-s="tea" class="on">Cameron Highlands</button><button data-s="beach">Perhentian beach</button><button data-s="forest">Taman Negara</button></div>
+  <div class="pano" id="pano">
+    <div class="panoin" id="panoin"></div>
+    <div class="orbwrap"><div class="orb" id="orb"></div><div class="orbtxt" id="orbTxt">Tap Start</div></div>
+    <div class="hint" style="z-index:3">360° view · drag to look around</div>
+  </div>
+  <div class="breathrow">
+    <div><small>Pattern</small><b>In 4 · Hold 4 · Out 6</b></div>
+    <div><small>Time left</small><b id="breathTime">2:00</b></div>
+  </div>
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:10px;margin-top:10px">
+    <button class="btn primary" id="breathBtn">Start breathing</button>
+    <button class="btn ghost" id="breathEnd">End</button>
+  </div>
+  <div class="success" id="breathDone"><b>Session complete.</b> Well done, that’s 4 days in a row. Your mood log stays private and encrypted on this device.</div>
+  <div class="card infoline" style="margin-top:10px"><span class="chip green">Comfort</span><span>Seated use · slow, steady view · no flashing lights</span></div>
+  <div class="spacer"></div>
+</section>
+
+<!-- ===================== F4 SHOP ===================== -->
+<section class="view" id="v-shop">
+  <div class="backbar">
+    <a class="iconbtn" href="#home" aria-label="Back"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <div><h2>Try-On Market</h2><p>Local SME marketplace · AR</p></div>
+  </div>
+  <div class="seg" id="prodSeg"><button data-p="chair" class="on">Kerusi Rotan</button><button data-p="songkok">Songkok Baldu</button></div>
+  <div class="mvwrap" style="margin-top:10px;background:radial-gradient(circle at 50% 35%,#fff 0%,#f1e9f7 75%)">
+    <model-viewer id="mvShop" camera-controls touch-action="pan-y" auto-rotate rotation-per-second="20deg" shadow-intensity="1.1" exposure="1.1" environment-image="neutral" interaction-prompt="none" ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed" alt="Product 3D model"></model-viewer>
+    <div class="hint">3D model · true size in AR</div>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px"><div><span class="chip purple" id="prodCat">Handicraft · Johor</span><h3 style="font-size:18px;font-weight:800;margin-top:6px" id="prodName">Kerusi Rotan</h3><p style="font-size:12.5px;color:var(--muted);margin-top:2px" id="prodSeller">Sold by Rotan Craft Muar (sample seller)</p></div><b style="font-size:20px;white-space:nowrap" id="prodPrice">RM 289</b></div>
+    <div id="prodOpts" style="margin-top:12px"></div>
+    <p class="fitnote" id="fitNote"></p>
+  </div>
+  <div style="display:grid;gap:10px;margin-top:12px">
+    <button class="btn primary block" id="prodAR">View in my room (AR)</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><button class="btn ghost" id="addCart">Add to cart</button><button class="btn soft" id="shareAR">Share AR link</button></div>
+  </div>
+  <div class="section-title"><h3>Seller view</h3><span>for the SME owner</span></div>
+  <div class="card">
+    <div class="sellerstats"><div><b>1,284</b><small>3D views</small></div><div><b>312</b><small>Try-ons</small></div><div><b>96</b><small>Add to cart</small></div></div>
+    <button class="btn soft block" style="margin-top:12px" id="capBtn">Create a 3D model from a phone video</button>
+    <div class="pipeline" id="pipeline">
+      <div class="pstep" data-i="0"><i></i>Video uploaded (32 s)</div>
+      <div class="pstep" data-i="1"><i></i>Building 3D model on cloud GPU</div>
+      <div class="pstep" data-i="2"><i></i>Optimised for Android (GLB) and iPhone (USDZ)</div>
+      <div class="pstep" data-i="3"><i></i>AR link and QR code ready to share</div>
+    </div>
+    <p class="sample" style="margin-top:10px">Prototype · sample seller data</p>
+  </div>
+  <div class="spacer"></div>
+</section>
+
+<!-- ===================== F5 FLOOD ===================== -->
+<section class="view" id="v-flood">
+  <div class="backbar">
+    <a class="iconbtn" href="#home" aria-label="Back"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <div><h2>Flood Ready</h2><p>Flood alerts · AR · VR drill</p></div>
+  </div>
+  <div class="floodalert">
+    <div style="display:flex;justify-content:space-between;align-items:center"><span class="lvl">AMARAN · WARNING</span><span style="font-size:11.5px;opacity:.85">Updated 10:42</span></div>
+    <h3>Sungai Melati station</h3>
+    <div style="display:flex;align-items:baseline;gap:8px"><b class="big">6.8 m</b><span style="font-size:12.5px;font-weight:700">▲ rising 0.3 m/hour</span></div>
+    <div class="gauge"><i style="flex:5.5;background:#43a047"></i><i style="flex:1;background:#fdd835"></i><i style="flex:1;background:#fb8c00"></i><i style="flex:1.5;background:#e53935"></i><span class="mark" style="left:75.6%"></span></div>
+    <div class="glabels"><span>Normal</span><span>Waspada 5.5</span><span>Amaran 6.5</span><span>Bahaya 7.5</span></div>
+    <p style="font-size:11px;opacity:.8;margin-top:8px">Source: JPS Public InfoBanjir · sample data in this prototype</p>
+  </div>
+  <div class="seg" id="floodSeg" style="margin-top:12px"><button data-t="map" class="on">Live map</button><button data-t="ar">AR water view</button><button data-t="drill">VR drill</button></div>
+
+  <div class="fpanel" id="fp-map">
+    <div class="card" style="padding:10px"><svg id="floodMap" viewBox="0 0 340 190" style="width:100%;display:block;border-radius:12px"></svg></div>
+    <div class="card" style="margin-top:10px;display:flex;gap:12px;align-items:center">
+      <div class="tic" style="--c:#16a06a;--l:#e3f6ee;width:42px;height:42px;flex-shrink:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M3 21h18M5 21V9l7-5 7 5v12"/><path d="M10 21v-5h4v5"/></svg></div>
+      <div style="flex:1"><b style="font-size:13.5px">Nearest relief centre (PPS)</b><p style="font-size:12px;color:var(--muted)">Dewan Serbaguna (sample) · 1.2 km · 15 min walk via higher ground</p></div>
+    </div>
+    <button class="btn primary block" style="margin-top:10px" onclick="go('ar-route')">AR directions to PPS</button>
+    <div class="section-title"><h3>Emergency bag checklist</h3><span id="chkCount">0 of 5 packed</span></div>
+    <div class="card" id="checklist" style="padding:4px 14px"></div>
+  </div>
+
+  <div class="fpanel" id="fp-ar" style="display:none">
+    <div class="waterscene" id="waterScene"></div>
+    <div class="card" style="margin-top:10px">
+      <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800"><span>Water height</span><span id="wVal">30 cm</span></div>
+      <input type="range" id="wSlider" min="0" max="150" step="5" value="30" style="width:100%;margin-top:8px;accent-color:#d35400">
+      <p class="wmsg" id="wMsg"></p>
+    </div>
+    <p class="sample">Preview of the AR overlay that is drawn on your real street through the camera</p>
+  </div>
+
+  <div class="fpanel" id="fp-drill" style="display:none">
+    <div class="card" id="drillBox"></div>
+    <p class="sample">Full immersive version runs in a VR headset browser (WebXR)</p>
+  </div>
+  <div class="spacer"></div>
+</section>
+
+<!-- ===================== LESSON ===================== -->
+<section class="view" id="v-lesson">
+  <div class="backbar">
+    <a class="iconbtn" href="#kelas" aria-label="Back"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <div><h2 id="lTitle">Lesson</h2><p id="lSub"></p></div>
+  </div>
+  <div class="lessonhead" id="lChips"></div>
+  <div class="mvwrap" id="mvwrap">
+    <model-viewer id="mv" camera-controls touch-action="pan-y" auto-rotate auto-rotate-delay="1500" rotation-per-second="18deg"
+      shadow-intensity="1" exposure="1.05" environment-image="neutral" interaction-prompt="none"
+      ar ar-modes="webxr scene-viewer quick-look" ar-scale="auto" alt="Interactive 3D model"></model-viewer>
+    <div class="hint"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="4"/></svg>Drag to rotate · pinch to zoom</div>
+  </div>
+  <div class="mvtools">
+    <button class="btn primary" id="arBtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M12 22V12M21 7l-9 5-9-5"/></svg>View in AR</button>
+    <button class="btn ghost" id="lblBtn">Labels: on</button>
+    <button class="btn ghost" id="resetBtn" aria-label="Reset view"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg></button>
+  </div>
+  <div class="section-title"><h3>Key facts</h3><span id="lTime"></span></div>
+  <div class="facts" id="lFacts"></div>
+  <div style="display:grid;gap:10px;margin-top:16px">
+    <button class="btn primary block" id="quizBtn">Take the quiz · 3 questions</button>
+    <button class="btn soft block" id="labLink" style="display:none" onclick="go('lab')">Try it in the Virtual Lab (VR)</button>
+  </div>
+  <div class="spacer"></div>
+</section>
+
+<!-- ===================== LAB ===================== -->
+<section class="view" id="v-lab">
+  <div class="backbar">
+    <a class="iconbtn" href="#kelas" aria-label="Back"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <div><h2>Virtual Lab</h2><p>Acid–Base Neutralisation · Chemistry</p></div>
+  </div>
+  <div class="labscene" id="labscene">
+    <a-scene embedded vr-mode-ui="enabled: true" renderer="antialias: true; colorManagement: true" cursor="rayOrigin: mouse" raycaster="objects: .clickable" background="color: #dde6f1" device-orientation-permission-ui="enabled: false" loading-screen="enabled: false">
+      <a-entity light="type: ambient; intensity: 0.75; color: #ffffff"></a-entity>
+      <a-entity light="type: directional; intensity: 0.85" position="1.5 3 2"></a-entity>
+      <a-plane rotation="-90 0 0" width="14" height="14" color="#c9d3df"></a-plane>
+      <a-plane position="0 2 -2.6" width="14" height="4" color="#eef2f7"></a-plane>
+      <a-plane id="wb" position="0 1.85 -2.58" width="2.1" height="0.875" material="shader: flat; color: #ffffff"></a-plane>
+      <!-- bench -->
+      <a-box position="0 0.45 -1.2" width="2.6" height="0.9" depth="1.0" color="#8a6a4b"></a-box>
+      <a-box position="0 0.92 -1.2" width="2.7" height="0.06" depth="1.06" color="#33404f"></a-box>
+      <!-- beaker -->
+      <a-cylinder position="0 1.07 -1.05" radius="0.13" height="0.24" open-ended="true" material="color: #cfe9ff; opacity: 0.22; transparent: true; side: double; depthWrite: false"></a-cylinder>
+      <a-cylinder position="0 0.952 -1.05" radius="0.13" height="0.006" color="#dcecff"></a-cylinder>
+      <a-cylinder id="liquid" position="0 1.0 -1.05" radius="0.122" height="0.09" material="color: #e53935; roughness: 0.3"></a-cylinder>
+      <!-- stand + burette -->
+      <a-box position="-0.28 0.965 -1.25" width="0.3" height="0.03" depth="0.22" color="#2b3542"></a-box>
+      <a-cylinder position="-0.36 1.45 -1.25" radius="0.012" height="1.0" color="#7d8896"></a-cylinder>
+      <a-box position="-0.18 1.62 -1.2" width="0.36" height="0.025" depth="0.03" color="#7d8896"></a-box>
+      <a-cylinder class="clickable" id="burette" position="0 1.6 -1.12" radius="0.022" height="0.56" material="color: #e9f3ff; opacity: 0.55; transparent: true"></a-cylinder>
+      <a-cylinder position="0 1.29 -1.12" radius="0.006" height="0.07" color="#9aa6b5"></a-cylinder>
+      <a-box class="clickable" id="tap" position="0 1.31 -1.12" width="0.07" height="0.02" depth="0.02" color="#1f6fd1"></a-box>
+      <a-sphere id="drop" position="0 1.25 -1.12" radius="0.013" color="#bcdcff" visible="false"></a-sphere>
+      <!-- bottles -->
+      <a-cylinder class="clickable" id="naoh" position="0.6 1.05 -1.15" radius="0.075" height="0.22" color="#f7fbff"></a-cylinder>
+      <a-cylinder position="0.6 1.19 -1.15" radius="0.03" height="0.06" color="#1f6fd1"></a-cylinder>
+      <a-plane id="lblNaoh" class="clickable" position="0.6 1.05 -1.072" width="0.13" height="0.08" material="shader: flat; color: #ffffff"></a-plane>
+      <a-cylinder position="-0.75 1.05 -1.15" radius="0.075" height="0.22" color="#f7fbff"></a-cylinder>
+      <a-cylinder position="-0.75 1.19 -1.15" radius="0.03" height="0.06" color="#d64545"></a-cylinder>
+      <a-plane id="lblHcl" position="-0.75 1.05 -1.072" width="0.13" height="0.08" material="shader: flat; color: #ffffff"></a-plane>
+      <!-- pH meter -->
+      <a-plane id="phPanel" position="-0.62 1.42 -1.5" width="0.42" height="0.26" material="shader: flat; color: #ffffff"></a-plane>
+      <a-entity position="0 1.45 -0.15" rotation="-15 0 0">
+        <a-entity camera look-controls="pointerLockEnabled: false; magicWindowTrackingEnabled: false" wasd-controls="enabled: false"></a-entity>
+      </a-entity>
+    </a-scene>
+    <div class="hint" style="z-index:5">Tap the NaOH bottle or burette to add 1 mL · drag to look</div>
+  </div>
+  <div class="phpanel">
+    <div class="stat"><small>NaOH added</small><b id="volOut">0.0 mL</b></div>
+    <div class="stat"><small>pH reading</small><b id="phOut"><span class="swatch" id="phSw"></span>1.00</b></div>
+  </div>
+  <div class="card" style="margin-top:10px;padding:12px 14px">
+    <div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:700"><span>Universal indicator</span><span id="colName">Red · strong acid</span></div>
+    <div class="scale" id="scale"></div>
+    <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);font-weight:700;margin-top:4px"><span>pH 1</span><span>7</span><span>14</span></div>
+  </div>
+  <div class="labbtns">
+    <button class="btn primary" onclick="addBase(1)">+1 mL NaOH</button>
+    <button class="btn soft" onclick="addBase(5)">+5 mL</button>
+    <button class="btn ghost" onclick="resetLab()">Reset</button>
+  </div>
+  <div class="success" id="labSuccess"><b>Neutral reached!</b> 25.0 mL of 0.1 M NaOH exactly neutralised 25.0 mL of 0.1 M HCl. The solution is now salt water (NaCl + H₂O) at pH 7. Badge unlocked: <b>Lab Safety Star</b>.</div>
+  <div class="card curve">
+    <div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:800"><span>pH curve (live)</span><span style="color:var(--muted);font-weight:600">25.0 mL 0.1 M HCl in beaker</span></div>
+    <svg id="curve" viewBox="0 0 320 150"></svg>
+  </div>
+  <div class="spacer"></div>
+</section>
+
+<!-- ===================== QUIZ ===================== -->
+<section class="view" id="v-quiz">
+  <div class="backbar">
+    <a class="iconbtn" id="quizBack" href="#home" aria-label="Back"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg></a>
+    <div><h2 id="qTitle">Quiz</h2><p id="qSub"></p></div>
+  </div>
+  <div id="quizBody"></div>
+</section>
+
+<!-- ===================== CLASS (teacher) ===================== -->
+<section class="view" id="v-class">
+  <div class="topbar">
+    <div class="brand"><div class="logo" style="background:linear-gradient(135deg,#0f2747,#1f6fd1)">T</div><div><small>Teacher mode</small><b>Class Session</b></div></div>
+    <span class="chip dark">Cikgu Farah</span>
+  </div>
+  <div class="session">
+    <div class="row"><span class="live"><i></i>LIVE</span><span style="font-size:12px;opacity:.8">4 Bestari · Science · 10:05 am</span></div>
+    <div style="font-size:12px;opacity:.75;margin-top:12px">Class code</div>
+    <div class="row"><div class="code">LAB-4821</div><button class="btn" id="copyCode">Copy</button></div>
+    <div class="row" style="font-size:12.5px;margin-top:4px"><span><b id="joinedN">28</b> of 32 students joined</span><span style="opacity:.75">4 waiting</span></div>
+    <div class="joinbar"><i id="joinedBar" style="width:87.5%"></i></div>
+  </div>
+
+  <div class="section-title"><h3>Guide the class</h3><span>applies to all devices</span></div>
+  <div class="card">
+    <div style="font-size:12.5px;font-weight:700;color:var(--muted);margin-bottom:8px">Push a lesson to every student screen</div>
+    <div style="display:flex;gap:8px">
+      <select id="pushSel"><option value="cell">Animal Cell (3D/AR)</option><option value="water">Water Molecule (3D/AR)</option><option value="solar">Solar System (3D/AR)</option><option value="lab">Virtual Lab – Neutralisation (VR)</option></select>
+      <button class="btn primary" id="pushBtn" style="flex-shrink:0">Send</button>
+    </div>
+  </div>
+  <div class="ctrlgrid" style="margin-top:10px">
+    <button class="ctrl" id="lockBtn"><div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div><b>Lock screens</b><small id="lockTxt">Students can explore freely</small></button>
+    <button class="ctrl" id="quizStart"><div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><b>Start class quiz</b><small>3 questions · 2 min</small></button>
+  </div>
+
+  <div class="section-title"><h3>Live quiz results</h3><span>Water Molecule</span></div>
+  <div class="card qbars" id="qbars"></div>
+  <div class="card" style="margin-top:10px;background:#fff8e8;box-shadow:none;border:1.5px solid #ffe0a3;font-size:13px;line-height:1.45"><b>Concept to revisit:</b> 11 students chose 90° for the H–O–H bond angle. Push the 3D model with labels on before moving on.</div>
+
+  <div class="section-title"><h3>Students</h3><span>28 online</span></div>
+  <div class="students" id="studentList"></div>
+  <p class="sample">Prototype · sample class data for demonstration</p>
+  <div class="spacer"></div>
+</section>
+
+<!-- ===================== ME ===================== -->
+<section class="view" id="v-me">
+  <div class="topbar"><div class="brand"><div class="logo">IM</div><div><small>Immerse Malaysia</small><b>My progress</b></div></div></div>
+  <div class="card profile"><div class="avatar">AR</div><div><h2>Aisyah Rahman</h2><p>Form 4 · 4 Bestari · Student</p></div></div>
+  <div class="statsrow">
+    <div class="stat"><small>XP</small><b id="xpOut">0</b></div>
+    <div class="stat"><small>Quizzes</small><b id="qzOut">0/3</b></div>
+    <div class="stat"><small>Streak</small><b>4 days</b></div>
+  </div>
+  <div class="section-title"><h3>Badges</h3><span id="bdgCount"></span></div>
+  <div class="card badges" id="badges"></div>
+  <div class="section-title"><h3>Comfort &amp; access</h3><span>saved on this device</span></div>
+  <div class="card" style="padding:4px 16px">
+    <div class="setting"><div>Reduce motion<small>Stops auto-rotating models (helps with dizziness)</small></div><button class="switch" id="swMotion" aria-label="Reduce motion"></button></div>
+    <div class="setting"><div>Show labels by default<small>Name tags on every 3D model</small></div><button class="switch on" id="swLabels" aria-label="Show labels"></button></div>
+    <div class="setting"><div>Offline packs<small>3 lessons + lab · 3.3 MB stored</small></div><span class="chip green">Ready</span></div>
+  </div>
+  <button class="btn ghost block" style="margin-top:14px" id="resetProgress">Reset my progress</button>
+  <div class="spacer"></div>
+</section>
+
+</main>
+
+<!-- AR preview overlay -->
+<div class="arview" id="arview">
+  <div class="camfeed"></div>
+  <model-viewer id="mvAR" camera-orbit="25deg 62deg 150%" interaction-prompt="none" shadow-intensity="1.4" shadow-softness="0.6" exposure="1.1" environment-image="neutral" camera-controls disable-zoom touch-action="pan-y"></model-viewer>
+  <div class="reticle"></div>
+  <svg class="facesil" viewBox="0 0 230 300"><path d="M115 20c-48 0-78 36-78 92 0 40 14 80 40 104 12 11 24 17 38 17s26-6 38-17c26-24 40-64 40-104 0-56-30-92-78-92z" fill="#d9a77c"/><path d="M40 300c6-46 38-66 75-66s69 20 75 66z" fill="#1f6fd1"/><ellipse cx="85" cy="122" rx="8" ry="5" fill="#3a2a22"/><ellipse cx="145" cy="122" rx="8" ry="5" fill="#3a2a22"/><path d="M98 178c10 8 24 8 34 0" stroke="#7a4a32" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M115 130v28l-8 6" stroke="#b9805a" stroke-width="3" fill="none"/></svg>
+  <div class="navarrows"><div class="navpin">PPS · Dewan Serbaguna · 1.2 km</div><i></i><i></i><i></i></div>
+  <div class="artop">
+    <button class="iconbtn" id="arClose" aria-label="Close AR"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    <h3 id="arTitle">AR</h3>
+    <span class="chip">AR preview</span>
+  </div>
+  <div class="arnote" id="arNote">This browser cannot open the camera, so this is a preview of the AR screen. On an AR-capable phone, “View in AR” places the model on your real desk.</div>
+  <div class="arbottom">
+    <div class="arpill" id="arPill"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 7V4h3M20 7V4h-3M4 17v3h3M20 17v3h-3"/></svg><span id="arPillTxt">Move your phone slowly to find a flat surface</span></div>
+    <div class="arbtns">
+      <button class="btn" id="arLabels">Labels</button>
+      <button class="btn primary" id="arPlace" disabled>Place model</button>
+      <button class="btn" id="arReset">Reset</button>
+    </div>
+  </div>
+</div>
+
+<nav class="tabs" id="tabs">
+  <a href="#home" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
+  <a href="#kelas" data-tab="learn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5z"/><path d="M7 11v5c3 2 7 2 10 0v-5"/></svg>Learn</a>
+  <a href="#flood" data-tab="alerts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 15c2 0 2-1.5 4-1.5S8 15 10 15s2-1.5 4-1.5 2 1.5 4 1.5 2-1.5 4-1.5"/><path d="M2 20c2 0 2-1.5 4-1.5S8 20 10 20s2-1.5 4-1.5 2 1.5 4 1.5 2-1.5 4-1.5"/><path d="M12 3v7M9 7l3 3 3-3"/></svg>Alerts</a>
+  <a href="#class" data-tab="class"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>Class</a>
+  <a href="#me" data-tab="me"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Me</a>
+</nav>
+<div class="toast" id="toast"></div>
+</div>
+
+<script>
+/* ---------------- data ---------------- */
+const ICONS = {
+  solar:'<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="10" fill="#ffb21e"/><ellipse cx="32" cy="32" rx="26" ry="9" fill="none" stroke="#7fa6d9" stroke-width="2" transform="rotate(-18 32 32)"/><circle cx="56" cy="24" r="4.5" fill="#2f7de1"/><circle cx="10" cy="40" r="3.5" fill="#d0582f"/></svg>',
+  water:'<svg viewBox="0 0 64 64"><line x1="32" y1="26" x2="16" y2="42" stroke="#9aa4b2" stroke-width="4"/><line x1="32" y1="26" x2="48" y2="42" stroke="#9aa4b2" stroke-width="4"/><circle cx="32" cy="24" r="12" fill="#e0362c"/><circle cx="15" cy="44" r="8" fill="#fff" stroke="#cdd5df" stroke-width="2"/><circle cx="49" cy="44" r="8" fill="#fff" stroke="#cdd5df" stroke-width="2"/></svg>',
+  cell:'<svg viewBox="0 0 64 64"><ellipse cx="32" cy="32" rx="27" ry="22" fill="#fbd3dd" stroke="#f29bb0" stroke-width="2.5"/><circle cx="35" cy="31" r="9" fill="#7b4bc4"/><circle cx="37" cy="29" r="3" fill="#3a1f6e"/><rect x="12" y="22" width="11" height="5" rx="2.5" fill="#f28c28" transform="rotate(25 17 24)"/><rect x="40" y="44" width="11" height="5" rx="2.5" fill="#f28c28"/></svg>'
+};
+const LESSONS = {
+  solar:{title:'The Solar System',subject:'Science',time:'8 min',chips:[['Science',''],['3D','green'],['AR','purple']],
+    model:'models/solar-system.glb',orbit:'0deg 58deg 95%',dark:true,
+    hotspots:[['Sun','0 0.6 0'],['Earth','-0.581 0.15 -1.597'],['Jupiter','1.375 0.3 2.382'],['Saturn','-3.437 0.27 -0.301'],['Neptune','4.395 0.2 1.178']],
+    facts:['The Sun holds about 99.8% of all the mass in the Solar System.','Jupiter is the largest planet; more than 1,300 Earths could fit inside it.','Saturn’s rings are made mostly of pieces of ice and rock.','This model is not to scale; real distances between planets are far larger.']},
+  water:{title:'Water Molecule (H₂O)',subject:'Chemistry',time:'6 min',chips:[['Chemistry','amber'],['3D','green'],['AR','purple']],
+    model:'models/water-molecule.glb',orbit:'0deg 80deg 125%',
+    hotspots:[['Oxygen atom','0.2 0.62 0.1'],['Covalent bond','-0.47 -0.36 0.12','l'],['Angle 104.5°','0 -0.42 0.55'],['Hydrogen atom','0.909 -1.08 0.1','l']],
+    facts:['One oxygen atom shares electrons with two hydrogen atoms through covalent bonds.','The H–O–H bond angle is about 104.5°, which gives water its bent shape.','Oxygen pulls the shared electrons more strongly, so the molecule is polar.']},
+  cell:{title:'Animal Cell',subject:'Biology',time:'10 min',chips:[['Biology','purple'],['3D','green'],['AR','purple']],
+    model:'models/animal-cell.glb',orbit:'0deg 72deg 118%',
+    hotspots:[['Cell membrane','-0.2 1.6 0.3'],['Nucleus','0.25 0.69 0'],['Mitochondrion','-1.05 0.5 0.45'],['Lysosome','0.2 -1.0 -0.48']],
+    facts:['The nucleus contains DNA and controls the activities of the cell.','Mitochondria carry out cellular respiration to release energy.','The cell membrane controls which substances enter and leave the cell.','Unlike plant cells, animal cells have no cell wall and no chloroplasts.']}
+};
+const QUIZ = {
+  solar:[
+    ['Which planet is closest to the Sun?',['Venus','Mercury','Mars','Earth'],1,'Mercury orbits closest to the Sun, at about 58 million km.'],
+    ['Which is the largest planet in the Solar System?',['Saturn','Neptune','Jupiter','Earth'],2,'Jupiter is the largest planet; it is a gas giant.'],
+    ['Which planet is best known for its bright rings?',['Saturn','Mars','Uranus','Venus'],0,'Saturn’s rings of ice and rock are the most visible in the Solar System.']],
+  water:[
+    ['How many hydrogen atoms are in one water molecule?',['1','2','3','4'],1,'H₂O means two hydrogen atoms and one oxygen atom.'],
+    ['What type of bond joins oxygen and hydrogen in water?',['Ionic bond','Metallic bond','Covalent bond','Hydrogen bond'],2,'The atoms share electron pairs, which is a covalent bond.'],
+    ['What is the approximate H–O–H bond angle?',['90°','104.5°','120°','180°'],1,'About 104.5°, so water is bent, not straight.']],
+  cell:[
+    ['Which organelle contains DNA and controls the cell?',['Mitochondrion','Lysosome','Nucleus','Golgi apparatus'],2,'The nucleus holds genetic material and directs cell activities.'],
+    ['Where does cellular respiration release energy?',['Mitochondrion','Cell membrane','Nucleus','Ribosome'],0,'Mitochondria are the “powerhouse” of the cell.'],
+    ['Which structure controls what enters and leaves the cell?',['Cytoplasm','Cell membrane','Nucleolus','Golgi apparatus'],1,'The cell membrane is partially permeable and controls movement of substances.']]
+};
+const BADGES = [
+  ['solar','Space Explorer','#ffe7b0','<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="#ffb21e"/><ellipse cx="12" cy="12" rx="10" ry="3.5" fill="none" stroke="#1f6fd1" stroke-width="1.6" transform="rotate(-20 12 12)"/></svg>'],
+  ['water','Molecule Master','#ffd9d6','<svg viewBox="0 0 24 24"><line x1="12" y1="10" x2="6" y2="16" stroke="#9aa4b2" stroke-width="2"/><line x1="12" y1="10" x2="18" y2="16" stroke="#9aa4b2" stroke-width="2"/><circle cx="12" cy="9" r="4.5" fill="#e0362c"/><circle cx="6" cy="17" r="3" fill="#fff" stroke="#9aa4b2"/><circle cx="18" cy="17" r="3" fill="#fff" stroke="#9aa4b2"/></svg>'],
+  ['cell','Cell Scientist','#eadcfb','<svg viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="10" ry="8" fill="#fbd3dd" stroke="#f29bb0" stroke-width="1.5"/><circle cx="13" cy="11.5" r="3.5" fill="#7b4bc4"/></svg>'],
+  ['lab','Lab Safety Star','#d6f3e5','<svg viewBox="0 0 24 24"><path d="M9 3h6M10 3v5L5 18a2 2 0 0 0 1.8 3h10.4A2 2 0 0 0 19 18l-5-10V3" fill="none" stroke="#16a06a" stroke-width="1.8" stroke-linejoin="round"/><path d="M7 15h10l1.5 3H5.5z" fill="#43c36b"/></svg>']
+];
+const STUDENTS = [['Aisyah R.','In AR · Water','#16a06a'],['Wei Jie T.','Quiz done · 3/3','#1f6fd1'],['Kavitha S.','In AR · Water','#16a06a'],['Harith Z.','Quiz done · 2/3','#1f6fd1'],['Mei Ling C.','Virtual Lab','#8e44ad'],['Arjun P.','Idle · 2 min','#d0a020'],['Nurul H.','In AR · Water','#16a06a'],['Daniel L.','Quiz done · 3/3','#1f6fd1']];
+
+/* ---------------- storage (safe) ---------------- */
+const KEY='kelasxr-demo-v1';
+let S={xp:0,best:{},lab:false,reduce:false,labels:true,last:'water',stamps:2,check:[],mood:null};
+try{const raw=localStorage.getItem(KEY); if(raw) S=Object.assign(S,JSON.parse(raw));}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+
+/* ---------------- helpers ---------------- */
+const $=id=>document.getElementById(id);
+function toast(t){const el=$('toast');el.textContent=t;el.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>el.classList.remove('show'),2200);}
+function go(h){location.hash=h;}
+
+/* ---------------- home ---------------- */
+function renderHome(){
+  const L=$('lessonList'); L.innerHTML='';
+  const bg={solar:'#14274a',water:'#ffe9e7',cell:'#f6edfd'};
+  for(const [id,l] of Object.entries(LESSONS)){
+    const best=S.best[id]||0; const pct=best?Math.round(best/3*100):(id===S.last?35:0);
+    const b=document.createElement('button'); b.className='lcard'; b.onclick=()=>go('lesson-'+id);
+    b.innerHTML=`<div class="thumb" style="background:${bg[id]}">${ICONS[id]}</div><div class="meta">${l.chips.map(c=>`<span class="chip ${c[1]}">${c[0]}</span>`).join(' ')}<h4>${l.title}</h4><p>${l.time} · ${best?`Quiz best ${best}/3`:(id===S.last?'In progress':'Not started')}</p><div class="bar"><i style="width:${pct}%"></i></div></div>`;
+    L.appendChild(b);
+  }
+}
+$('joinForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const v=$('joinCode').value.trim().toUpperCase().replace(/\s/g,'');
+  if(v==='LAB-4821'||v==='LAB4821'){$('joined').classList.add('show');$('joinErr').style.display='none';toast('Joined 4 Bestari · Science');}
+  else{$('joinErr').style.display='block';$('joined').classList.remove('show');}
+});
+
+/* ---------------- lesson ---------------- */
+let current='water';
+const mv=$('mv');
+function applyLabels(){ $('mvwrap').classList.toggle('nolabels',!S.labels); $('lblBtn').textContent='Labels: '+(S.labels?'on':'off'); $('arview').classList.toggle('nolabels',!S.labels); }
+function setHotspots(el,list){
+  el.querySelectorAll('.hotspot').forEach(h=>h.remove());
+  list.forEach((h,i)=>{const b=document.createElement('button');b.className='hotspot';b.slot='hotspot-'+i;b.dataset.position=h[1];b.dataset.normal='0 1 0';b.dataset.visibilityAttribute='visible';if(h[2]==='l') b.classList.add('l'); b.innerHTML=`<span class="hs">${h[0]}</span>`;el.appendChild(b);});
+}
+function renderLesson(id){
+  current=id; S.last=id; save();
+  const l=LESSONS[id];
+  $('lTitle').textContent=l.title; $('lSub').textContent=l.subject+' · Learning Lab';
+  $('lChips').innerHTML=l.chips.map(c=>`<span class="chip ${c[1]}">${c[0]}</span>`).join('')+`<span class="chip">${l.time}</span>`;
+  $('lTime').textContent=l.time+' read';
+  $('lFacts').innerHTML=l.facts.map((f,i)=>`<div class="fact"><b>${i+1}</b><span>${f}</span></div>`).join('');
+  $('mvwrap').classList.toggle('dark',!!l.dark);
+  if(mv.getAttribute('src')!==l.model){mv.setAttribute('src',l.model);}
+  mv.setAttribute('camera-orbit',l.orbit); mv.cameraOrbit=l.orbit;
+  if(S.reduce) mv.removeAttribute('auto-rotate'); else mv.setAttribute('auto-rotate','');
+  setHotspots(mv,l.hotspots); applyLabels();
+  $('labLink').style.display=id==='water'?'flex':'none';
+  $('quizBtn').onclick=()=>go('quiz-'+id);
+}
+$('lblBtn').onclick=()=>{S.labels=!S.labels;save();applyLabels();syncSwitches();};
+$('resetBtn').onclick=()=>{mv.cameraOrbit=LESSONS[current].orbit;mv.fieldOfView='auto';mv.jumpCameraToGoal&&mv.jumpCameraToGoal();};
+$('arBtn').onclick=()=>{
+  if(mv.canActivateAR){ try{ mv.activateAR(); return; }catch(e){} }
+  go('ar-'+current);
+};
+
+/* ---------------- AR preview ---------------- */
+const mvAR=$('mvAR'); let arTimers=[];
+/* (AR overlay code moved below) */
+
+/* ---------------- quiz ---------------- */
+let qi=0,score=0,answered=false;
+function renderQuiz(id,reset=true){
+  current=id; if(reset){qi=0;score=0;}
+  const q=QUIZ[id]; $('qTitle').textContent='Quiz · '+LESSONS[id].title; $('qSub').textContent='Question '+Math.min(qi+1,3)+' of 3';
+  $('quizBack').href='#lesson-'+id;
+  const body=$('quizBody');
+  if(qi>=q.length){
+    const prev=S.best[id]||0; const gained=score*10; S.xp+=gained; if(score>prev) S.best[id]=score; save();
+    const pct=Math.round(score/3*100); const col=score===3?'#16a06a':score===2?'#1f6fd1':'#d0a020';
+    const badge=BADGES.find(b=>b[0]===id);
+    body.innerHTML=`<div class="card result"><div class="ring" style="background:conic-gradient(${col} ${pct}%,#e3e9f2 0)"><div>${score}/3</div></div>
+      <h3 style="font-size:20px;font-weight:800">${score===3?'Excellent!':score===2?'Good job!':'Keep practising!'}</h3>
+      <p style="color:var(--muted);font-size:13.5px;margin-top:6px">You earned <b>+${gained} XP</b>. Your teacher sees this score in the class dashboard.</p>
+      ${score>=2?`<div class="badgebig">Badge unlocked: ${badge[1]}</div>`:''}
+      <div style="display:grid;gap:10px;margin-top:18px"><button class="btn primary block" onclick="go('lesson-${id}')">Back to the 3D model</button><button class="btn ghost block" onclick="renderQuiz('${id}')">Try again</button><button class="btn soft block" onclick="go('me')">See my badges</button></div></div>`;
+    $('qSub').textContent='Finished';
+    return;
+  }
+  const [text,opts,ans,why]=q[qi]; answered=false;
+  body.innerHTML=`<div class="qprog">${q.map((_,i)=>`<i class="${i<=qi?'done':''}"></i>`).join('')}</div>
+   <div class="qcard"><h3>${text}</h3>${opts.map((o,i)=>`<button class="opt" data-i="${i}"><span>${'ABCD'[i]}</span>${o}</button>`).join('')}
+   <div class="explain" id="explain"></div><button class="btn primary block" id="nextQ" disabled>${qi===2?'See my score':'Next question'}</button></div>`;
+  body.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{
+    if(answered) return; answered=true; const i=+b.dataset.i;
+    body.querySelectorAll('.opt')[ans].classList.add('correct');
+    if(i!==ans) b.classList.add('wrong'); else score++;
+    const ex=$('explain'); ex.innerHTML=(i===ans?'<b style="color:#0b6b45">Correct.</b> ':'<b style="color:#b02a2a">Not quite.</b> ')+why; ex.classList.add('show');
+    $('nextQ').disabled=false;
+  });
+  $('nextQ').onclick=()=>{qi++;renderQuiz(id,false);};
+}
+
+/* ---------------- lab ---------------- */
+let vol=0; const VA=25, CA=0.1, CB=0.1; const history=[[0,1]];
+function phAt(v){const na=CA*VA/1000, nb=CB*v/1000, vt=(VA+v)/1000;
+  if(Math.abs(na-nb)<1e-12) return 7; if(nb<na) return -Math.log10((na-nb)/vt); return 14+Math.log10((nb-na)/vt);}
+const IND=[[3,'#e53935','Red · strong acid'],[5,'#fb8c00','Orange · acid'],[6.5,'#fdd835','Yellow · weak acid'],[7.5,'#43a047','Green · neutral'],[10,'#1e88e5','Blue · weak alkali'],[12,'#3949ab','Indigo · alkali'],[99,'#8e24aa','Purple · strong alkali']];
+function indicator(p){return IND.find(x=>p<x[0]);}
+$('scale').innerHTML=['#e53935','#f4511e','#fb8c00','#fdd835','#c0ca33','#7cb342','#43a047','#26a69a','#1e88e5','#1565c0','#3949ab','#5e35b1','#7b1fa2','#8e24aa'].map(c=>`<i style="background:${c}"></i>`).join('');
+function drawCurve(){
+  const W=320,H=150,px=v=>28+v/40*(W-40),py=p=>H-18-(p/14)*(H-30);
+  let s=`<line x1="28" y1="${H-18}" x2="${W-8}" y2="${H-18}" stroke="#c8d3e0"/><line x1="28" y1="10" x2="28" y2="${H-18}" stroke="#c8d3e0"/>`;
+  s+=`<line x1="28" y1="${py(7)}" x2="${W-8}" y2="${py(7)}" stroke="#43a047" stroke-dasharray="4 3" opacity=".7"/><text x="${W-10}" y="${py(7)-4}" font-size="9" text-anchor="end" fill="#2e7d32" font-weight="700">pH 7</text>`;
+  [0,10,20,30,40].forEach(v=>s+=`<text x="${px(v)}" y="${H-5}" font-size="9" text-anchor="middle" fill="#8090a5">${v}</text>`);
+  [0,7,14].forEach(p=>s+=`<text x="22" y="${py(p)+3}" font-size="9" text-anchor="end" fill="#8090a5">${p}</text>`);
+  s+=`<text x="${W-8}" y="${H-22}" font-size="9" text-anchor="end" fill="#8090a5">mL NaOH</text>`;
+  s+=`<polyline fill="none" stroke="#1f6fd1" stroke-width="2.5" stroke-linejoin="round" points="${history.map(([v,p])=>px(v)+','+py(p)).join(' ')}"/>`;
+  const [lv,lp]=history[history.length-1]; s+=`<circle cx="${px(lv)}" cy="${py(lp)}" r="5" fill="${indicator(lp)[1]}" stroke="#fff" stroke-width="2"/>`;
+  $('curve').innerHTML=s;
+}
+function updateLab(animate){
+  const p=phAt(vol), ind=indicator(p);
+  $('volOut').textContent=vol.toFixed(1)+' mL';
+  $('phOut').innerHTML=`<span class="swatch" style="background:${ind[1]}"></span>${p.toFixed(2)}`;
+  $('colName').textContent=ind[2];
+  const liq=$('liquid'); const h=0.09+vol/40*0.11;
+  liq.setAttribute('height',h); liq.setAttribute('position',`0 ${0.955+h/2} -1.05`);
+  liq.setAttribute('material','color',ind[1]);
+  setTex('phPanel',phTex(p,ind[1]));
+  drawCurve();
+  const ok=Math.abs(p-7)<0.01; $('labSuccess').classList.toggle('show',ok);
+  if(ok && !S.lab){S.lab=true;S.xp+=30;save();toast('Badge unlocked: Lab Safety Star');}
+  if(animate){const d=$('drop');d.setAttribute('visible',true);d.setAttribute('position','0 1.25 -1.12');
+    d.removeAttribute('animation');d.setAttribute('animation',`property: position; to: 0 ${0.955+h} -1.08; dur: 380; easing: easeInQuad`);
+    setTimeout(()=>d.setAttribute('visible',false),400);}
+}
+function addBase(ml){ if(vol>=40){toast('Beaker is full · press Reset');return;} for(let i=0;i<ml&&vol<40;i++){vol+=1;history.push([vol,phAt(vol)]);} updateLab(true); }
+function resetLab(){vol=0;history.length=0;history.push([0,1]);updateLab(false);}
+function texURL(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');draw(x,w,h);return c.toDataURL('image/png');}
+function setTex(id,url){const el=$(id); if(el) el.setAttribute('material','src',url);}
+const FNT='"Plus Jakarta Sans",Arial,sans-serif';
+function phTex(p,col){return texURL(420,260,(x,w,h)=>{x.fillStyle='#10213a';x.fillRect(0,0,w,h);x.fillStyle='#9fb3cf';x.font='700 30px '+FNT;x.fillText('pH METER',26,48);
+  x.fillStyle='#fff';x.font='800 96px '+FNT;x.fillText(p.toFixed(2),26,160);x.fillStyle=col;x.fillRect(26,196,w-52,34);});}
+function labelTex(t1,t2,col){return texURL(260,160,(x,w,h)=>{x.fillStyle=col;x.fillRect(0,0,w,h);x.fillStyle='#fff';x.textAlign='center';x.font='800 64px '+FNT;x.fillText(t1,w/2,82);x.font='700 40px '+FNT;x.fillText(t2,w/2,134);});}
+function initLabTextures(){
+  setTex('wb',texURL(960,400,(x,w,h)=>{x.fillStyle='#fff';x.fillRect(0,0,w,h);x.strokeStyle='#c9d3df';x.lineWidth=12;x.strokeRect(6,6,w-12,h-12);x.textAlign='center';
+    x.fillStyle='#1f6fd1';x.font='800 64px '+FNT;x.fillText('Acid + Alkali \u2192 Salt + Water',w/2,118);
+    x.fillStyle='#0f1b2d';x.font='700 56px '+FNT;x.fillText('HCl + NaOH \u2192 NaCl + H\u2082O',w/2,222);
+    x.fillStyle='#16a06a';x.font='700 48px '+FNT;x.fillText('Neutral = pH 7 (green)',w/2,320);}));
+  setTex('lblNaoh',labelTex('NaOH','0.1 M','#1f6fd1')); setTex('lblHcl',labelTex('HCl','0.1 M','#d64545'));
+}
+['naoh','lblNaoh','burette','tap'].forEach(id=>{const el=$(id); el.addEventListener('click',()=>addBase(1));});
+
+/* ---------------- class ---------------- */
+function renderClass(){
+  const data=[['Q1 · Hydrogen atoms',93,'#16a06a'],['Q2 · Type of bond',79,'#1f6fd1'],['Q3 · Bond angle',61,'#d0a020']];
+  $('qbars').innerHTML=data.map(d=>`<div class="qbar"><div class="t"><span>${d[0]}</span><span>${d[1]}% correct</span></div><div class="track"><i style="background:${d[2]}" data-w="${d[1]}"></i></div></div>`).join('');
+  requestAnimationFrame(()=>setTimeout(()=>$('qbars').querySelectorAll('.track i').forEach(i=>i.style.width=i.dataset.w+'%'),60));
+  const palette=['#ffe1b3','#d8e8ff','#e8dcfb','#d6f3e5','#ffd9d6','#fff0c2','#dff4fb','#f1e4d8'];
+  $('studentList').innerHTML=STUDENTS.map((s,i)=>`<div class="st"><div class="ini" style="background:${palette[i]}">${s[0].split(' ').map(x=>x[0]).join('')}</div>${s[0]}<span class="s"><i style="background:${s[2]}"></i>${s[1]}</span></div>`).join('');
+}
+$('pushBtn').onclick=()=>{const t=$('pushSel').selectedOptions[0].text;toast('Sent “'+t.split(' (')[0]+'” to 28 devices');};
+$('lockBtn').onclick=()=>{const b=$('lockBtn');b.classList.toggle('on');$('lockTxt').textContent=b.classList.contains('on')?'Screens follow the teacher':'Students can explore freely';toast(b.classList.contains('on')?'All student screens locked to your view':'Screens unlocked');};
+$('quizStart').onclick=()=>toast('Class quiz started on 28 devices');
+$('copyCode').onclick=async()=>{try{await navigator.clipboard.writeText('LAB-4821');toast('Class code copied');}catch(e){toast('Code: LAB-4821');}};
+
+/* ---------------- me ---------------- */
+function syncSwitches(){$('swMotion').classList.toggle('on',S.reduce);$('swLabels').classList.toggle('on',S.labels);}
+function renderMe(){
+  $('xpOut').textContent=S.xp; const done=Object.keys(S.best).length; $('qzOut').textContent=done+'/3';
+  const got=b=>b[0]==='lab'?S.lab:(S.best[b[0]]||0)>=2;
+  $('badges').innerHTML=BADGES.map(b=>`<div class="bdg ${got(b)?'got':''}"><div class="ico" style="background:${got(b)?b[2]:''}">${b[3]}</div>${b[1]}</div>`).join('');
+  $('bdgCount').textContent=BADGES.filter(got).length+' of 4 unlocked';
+  syncSwitches();
+}
+$('swMotion').onclick=()=>{S.reduce=!S.reduce;save();syncSwitches();toast(S.reduce?'Reduce motion on':'Reduce motion off');};
+$('swLabels').onclick=()=>{S.labels=!S.labels;save();syncSwitches();applyLabels();};
+$('resetProgress').onclick=()=>{S.xp=0;S.best={};S.lab=false;save();renderMe();toast('Progress reset');};
+
+
+/* ================= AR overlay (generic) ================= */
+const ARCFG = {
+  fort:{title:'AR · A Famosa in 1512',model:'models/fort-1512.glb',bg:'site',orbit:'25deg 70deg 125%',back:'heritage',
+    hotspots:[['Keep tower','-0.2 1.6 -0.2'],['Gate house','0 0.52 1.0']],
+    note:'At the real site, geospatial AR anchors the 1512 fortress around the surviving gate. This browser cannot open the camera, so this is a preview of that screen.',
+    find:'Point your camera at the Porta de Santiago gate',found:'Gate recognised · tap Rebuild fort',placed:'Walk around to see the fort as it stood in 1512',place:'Rebuild fort'},
+  chair:{title:'AR · Kerusi Rotan',model:'models/rattan-chair.glb',bg:'room',orbit:'30deg 72deg 150%',back:'shop',
+    hotspots:[['60 × 55 × 90 cm','0.3 0.92 -0.24']],
+    find:'Move your phone slowly to find the floor',found:'Floor found · tap Place chair',placed:'Shown at real size · walk around it',place:'Place chair'},
+  songkok:{title:'Try on · Songkok Baldu',model:'models/songkok.glb',bg:'face',orbit:'0deg 74deg 135%',back:'shop',hotspots:[],
+    note:'Preview of the try-on screen. On a phone, the front camera tracks your face and the songkok follows your head. Face images stay on the phone.',
+    find:'Look straight at the front camera',found:'Face found · tap Try on',placed:'Size 22 shown · turn your head to check the fit',place:'Try on'},
+  route:{title:'AR directions · PPS',nav:true,bg:'site',back:'flood',hotspots:[],
+    note:'Preview of AR navigation. On a phone, arrows are drawn on the real street through the camera.',
+    find:'Hold your phone up to see the safe route',found:'Route ready · tap Start',placed:'Turn left in 80 m · PPS in 1.2 km',place:'Start'}
+};
+let arBack='home';
+function arConfig(key){
+  if(ARCFG[key]) return ARCFG[key];
+  const l=LESSONS[key];
+  return {title:'AR · '+l.title,model:l.model,bg:'desk',orbit:'25deg 62deg 150%',back:'lesson-'+key,hotspots:l.hotspots,
+    find:'Move your phone slowly to find a flat surface',found:'Surface found · tap Place model',placed:'Placed on desk · walk around it to explore',place:'Place model'};
+}
+let arCfg=null;
+function openAR(key){
+  const c=arConfig(key); arCfg=c; arBack=c.back;
+  const av=$('arview'); av.className='arview active bg-'+c.bg+(c.nav?' navmode':'')+(S.labels?'':' nolabels');
+  $('arTitle').textContent=c.title;
+  $('arNote').textContent=c.note||'This browser cannot open the camera, so this is a preview of the AR screen. On an AR-capable phone, “View in AR” places the model in your real space.';
+  if(c.model){mvAR.setAttribute('src',c.model); mvAR.setAttribute('camera-orbit',c.orbit); mvAR.cameraOrbit=c.orbit;}
+  setHotspots(mvAR,c.hotspots||[]);
+  $('arPlace').textContent=c.place; $('arPlace').disabled=true; $('arPillTxt').textContent=c.find;
+  arTimers.forEach(clearTimeout); arTimers=[];
+  arTimers.push(setTimeout(()=>{av.classList.add('found');$('arPillTxt').textContent=c.found;$('arPlace').disabled=false;},1600));
+}
+$('arPlace').onclick=()=>{$('arview').classList.add('placed');$('arPillTxt').textContent=arCfg.placed;$('arPlace').disabled=true;};
+$('arReset').onclick=()=>{const k=(location.hash||'').replace('#ar-',''); openAR(k);};
+$('arClose').onclick=()=>go(arBack);
+
+/* ================= F1 Heritage ================= */
+const TRAIL=[['A Famosa',70,92],['St. Paul’s Hill',118,62],['Stadthuys',178,98],['Christ Church',214,74],['Jonker Street',282,108]];
+function drawTrail(){
+  const st=S.stamps;
+  let s=`<path d="M0 128 C60 118 90 140 150 126 S250 112 340 132 L340 150 L0 150Z" fill="#a9d4f0"/><text x="300" y="145" font-size="8" fill="#3b7bb0" font-weight="700">Sungai Melaka</text>`;
+  s+=`<path d="M20 20 L320 40 M40 70 L330 80 M150 0 L170 150" stroke="#fff" stroke-width="6" fill="none" opacity=".8"/>`;
+  s+=`<polyline points="${TRAIL.map(t=>t[1]+','+t[2]).join(' ')}" fill="none" stroke="#c0392b" stroke-width="2.5" stroke-dasharray="5 4"/>`;
+  TRAIL.forEach((t,i)=>{const done=i<st, here=i===0;
+    s+=`<circle cx="${t[1]}" cy="${t[2]}" r="${here?11:9}" fill="${done?'#c0392b':'#fff'}" stroke="#c0392b" stroke-width="2.5"/>`;
+    s+=`<text x="${t[1]}" y="${t[2]+3.5}" font-size="9" font-weight="800" text-anchor="middle" fill="${done?'#fff':'#c0392b'}">${i+1}</text>`;
+    s+=`<text x="${t[1]}" y="${t[2]-15}" font-size="8.5" font-weight="700" text-anchor="middle" fill="#3a2a22">${t[0]}</text>`;});
+  s+=`<circle cx="62" cy="104" r="5" fill="#1f6fd1" stroke="#fff" stroke-width="2"/>`;
+  $('trailMap').innerHTML=s; $('stampChip').textContent=st+' of 5 stamps';
+}
+const ERA={
+  '1512':{model:'models/fort-1512.glb',orbit:'30deg 68deg 105%',hs:[['Keep tower','-0.2 1.6 -0.2'],['Gate house','0 0.52 1.0'],['Bastion','1.2 0.8 0.9']],
+    note:'<b>1512 · Portuguese fort.</b> After capturing Melaka in 1511, the Portuguese built A Famosa with thick walls, round bastions and a tall keep tower overlooking the river mouth.'},
+  'today':{model:'models/fort-today.glb',orbit:'20deg 72deg 110%',hs:[['Porta de Santiago','0 1.36 0.1'],['VOC plaque (1670)','0 1.12 0.3']],
+    note:'<b>Today.</b> Most of the fort was demolished in the early 1800s. Only the Porta de Santiago gate survives, still showing the Dutch East India Company (VOC) coat of arms dated 1670.'}
+};
+const TRANS={
+  en:['en-GB','Welcome to A Famosa. The Portuguese built this fortress in 1511. Today, only the Porta de Santiago gate remains.'],
+  ms:['ms-MY','Selamat datang ke A Famosa. Kubu ini dibina oleh Portugis pada tahun 1511. Hari ini, hanya pintu gerbang Porta de Santiago yang masih tinggal.'],
+  zh:['zh-CN','欢迎来到法摩沙古堡。这座堡垒由葡萄牙人于1511年建造。如今只剩下圣地亚哥城门。'],
+  ta:['ta-IN','ஏ ஃபமோசாவுக்கு வரவேற்கிறோம். இந்தக் கோட்டை 1511 இல் போர்த்துகீசியர்களால் கட்டப்பட்டது. இன்று போர்ட்டா டி சான்டியாகோ வாயில் மட்டுமே எஞ்சியுள்ளது.']
+};
+let lang='en', era='1512', audioT=null, audioP=0;
+const mvFort=$('mvFort');
+function setEra(e){era=e; const d=ERA[e];
+  document.querySelectorAll('#eraSeg button').forEach(b=>b.classList.toggle('on',b.dataset.era===e));
+  mvFort.setAttribute('src',d.model); mvFort.setAttribute('camera-orbit',d.orbit); mvFort.cameraOrbit=d.orbit;
+  setHotspots(mvFort,d.hs); $('eraNote').innerHTML=d.note;
+  if(S.reduce) mvFort.removeAttribute('auto-rotate'); else mvFort.setAttribute('auto-rotate','');}
+document.querySelectorAll('#eraSeg button').forEach(b=>b.onclick=()=>setEra(b.dataset.era));
+function setLang(l){lang=l; document.querySelectorAll('#langs button').forEach(b=>b.classList.toggle('on',b.dataset.l===l)); $('transcript').textContent=TRANS[l][1];}
+document.querySelectorAll('#langs button').forEach(b=>b.onclick=()=>{stopAudio();setLang(b.dataset.l);});
+function stopAudio(){clearInterval(audioT);audioT=null;audioP=0;$('audioBar').style.width='0%';$('audioTime').textContent='0:00';$('playBtn').innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5l12 7-12 7z"/></svg>';try{speechSynthesis.cancel();}catch(e){}}
+$('playBtn').onclick=()=>{
+  if(audioT){stopAudio();return;}
+  $('playBtn').innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>';
+  try{const u=new SpeechSynthesisUtterance(TRANS[lang][1]);u.lang=TRANS[lang][0];u.rate=.95;speechSynthesis.speak(u);}catch(e){}
+  audioT=setInterval(()=>{audioP+=1;$('audioBar').style.width=(audioP/20*100)+'%';$('audioTime').textContent='0:'+String(audioP).padStart(2,'0');if(audioP>=20)stopAudio();},1000);
+};
+$('stampBtn').onclick=()=>{ if(S.stamps<3){S.stamps=3;save();drawTrail();toast('Stamp collected · 3 of 5 · RM5 voucher unlocked');} else toast('Stamp already collected here'); };
+
+/* ================= F3 Wellness ================= */
+const MOODS=[['Very low','M8 17c2-2.5 6-2.5 8 0','#e57373'],['Low','M8 16.5c2-1.3 6-1.3 8 0','#ffb74d'],['Okay','M8 16h8','#ffd54f'],['Good','M8 15c2 1.6 6 1.6 8 0','#81c784'],['Great','M7.5 14.5c2 3 7 3 9 0','#4db6ac']];
+$('moods').innerHTML=MOODS.map((m,i)=>`<button data-i="${i}"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="${m[2]}"/><circle cx="9" cy="10" r="1.3" fill="#3a2a22"/><circle cx="15" cy="10" r="1.3" fill="#3a2a22"/><path d="${m[1]}" stroke="#3a2a22" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>${m[0]}</button>`).join('');
+document.querySelectorAll('#moods button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#moods button').forEach(x=>x.classList.toggle('on',x===b));
+  const i=+b.dataset.i; S.mood=i; save(); $('support').classList.toggle('show',i===0);
+  toast(i===0?'Thank you for sharing · support options shown':'Mood saved privately');});
+function panoSVG(k){
+  const W=1600,H=400; let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice">`;
+  if(k==='beach'){
+    s+=`<defs><linearGradient id="sk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5fb4ef"/><stop offset="1" stop-color="#cdeefc"/></linearGradient></defs><rect width="${W}" height="${H}" fill="url(#sk)"/>`;
+    s+=`<circle cx="1150" cy="90" r="38" fill="#fff6c9"/><rect y="215" width="${W}" height="80" fill="#2bb3c9"/><rect y="215" width="${W}" height="10" fill="#7fdbe6"/><path d="M0 290 Q400 270 800 292 T1600 288 V400 H0Z" fill="#f2deb0"/>`;
+    for(const x of [200,700,1300]) s+=`<path d="M${x} 300 q10 -70 4 -120" stroke="#7a5a35" stroke-width="10" fill="none"/><path d="M${x+4} 182 q-60 -10 -90 30 M${x+4} 182 q60 -15 95 20 M${x+4} 182 q-30 -40 -70 -40 M${x+4} 182 q35 -40 80 -35" stroke="#2f8a4a" stroke-width="12" fill="none" stroke-linecap="round"/>`;
+    s+=`<path d="M0 300 Q200 290 400 302 T800 300 T1200 304 T1600 300" stroke="#fff" stroke-width="5" fill="none" opacity=".8"/>`;
+  } else if(k==='forest'){
+    s+=`<rect width="${W}" height="${H}" fill="#cfe5d8"/>`;
+    for(let i=0;i<14;i++){const x=i*120+20,h=220+((i*53)%90);s+=`<rect x="${x+44}" y="${H-h+40}" width="14" height="${h}" fill="#5d4632"/><ellipse cx="${x+50}" cy="${H-h+40}" rx="80" ry="60" fill="${['#2e6b3d','#3a8049','#24593a'][i%3]}"/>`;}
+    s+=`<rect y="${H-70}" width="${W}" height="70" fill="#3d6b3a"/><rect width="${W}" height="${H}" fill="#ffffff" opacity=".18"/>`;
+    for(let i=0;i<30;i++) s+=`<path d="M${(i*57)%W} ${H-60} q12 -30 24 0" fill="#4f8f45"/>`;
+  } else {
+    s+=`<defs><linearGradient id="sk2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9fd0f0"/><stop offset="1" stop-color="#eef7fb"/></linearGradient></defs><rect width="${W}" height="${H}" fill="url(#sk2)"/>`;
+    s+=`<path d="M0 170 Q200 90 420 150 T860 130 T1300 150 T1600 140 V400 H0Z" fill="#9fb8a8"/>`;
+    const greens=['#4d9a46','#5daa4f','#3f8a3c'];
+    [[210,'#4d9a46'],[260,'#5daa4f'],[310,'#3f8a3c']].forEach(([y,c],j)=>{s+=`<path d="M0 ${y} Q300 ${y-60} 600 ${y-10} T1200 ${y-20} T1600 ${y-5} V400 H0Z" fill="${c}"/>`;
+      for(let x=0;x<W;x+=26) s+=`<path d="M${x} ${y+30+j*8} q13 -10 26 0" stroke="#2f6e2c" stroke-width="3" fill="none" opacity=".55"/>`;});
+    s+=`<rect width="${W}" height="${H}" fill="#fff" opacity=".1"/>`;
+  }
+  return s+'</svg>';
+}
+let panoX=0,panoW=0,drag=null,breathOn=false,breathLeft=120,breathT=null,phaseT=null,panoRaf=null;
+function setScene(k){document.querySelectorAll('#scenes button').forEach(b=>b.classList.toggle('on',b.dataset.s===k));
+  const svg=panoSVG(k); $('panoin').innerHTML=svg+svg; requestAnimationFrame(()=>{panoW=$('panoin').firstElementChild.getBoundingClientRect().width;});}
+document.querySelectorAll('#scenes button').forEach(b=>b.onclick=()=>setScene(b.dataset.s));
+function applyPano(){ if(!panoW){const f=$('panoin').firstElementChild; if(f) panoW=f.getBoundingClientRect().width;} if(panoW){ panoX=((panoX%panoW)+panoW)%panoW; $('panoin').style.transform=`translateX(${-panoX}px)`; } }
+const pano=$('pano');
+pano.addEventListener('pointerdown',e=>{drag={x:e.clientX,p:panoX};pano.setPointerCapture(e.pointerId);});
+pano.addEventListener('pointermove',e=>{if(!drag)return;panoX=drag.p-(e.clientX-drag.x);applyPano();});
+pano.addEventListener('pointerup',()=>drag=null); pano.addEventListener('pointercancel',()=>drag=null);
+function panoLoop(){ if(!drag && !S.reduce && $('v-wellness').classList.contains('active')){panoX+=0.25;applyPano();} panoRaf=requestAnimationFrame(panoLoop); }
+const PH=[['Breathe in',4000,1],['Hold',4000,1],['Breathe out',6000,.55]];
+function runPhase(i){ if(!breathOn) return; const [t,d,sc]=PH[i]; $('orbTxt').textContent=t; const o=$('orb'); o.style.transitionDuration=(d/1000)+'s'; o.style.transform=`scale(${sc})`;
+  try{ if(i===0 && navigator.vibrate) navigator.vibrate(60); }catch(e){}
+  phaseT=setTimeout(()=>runPhase((i+1)%3),d); }
+function fmt(s){return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');}
+function stopBreath(done){ breathOn=false; clearTimeout(phaseT); clearInterval(breathT); $('breathBtn').textContent='Start breathing'; $('orbTxt').textContent=done?'Well done':'Tap Start'; $('orb').style.transitionDuration='1s'; $('orb').style.transform='scale(.55)';
+  if(done){$('breathDone').classList.add('show');} }
+$('breathBtn').onclick=()=>{ if(breathOn){stopBreath(false);return;} breathOn=true; $('breathDone').classList.remove('show'); if(breathLeft<=0) breathLeft=120; $('breathBtn').textContent='Pause';
+  runPhase(0); breathT=setInterval(()=>{breathLeft--; $('breathTime').textContent=fmt(breathLeft); if(breathLeft<=0){stopBreath(true);}},1000); };
+$('breathEnd').onclick=()=>{ stopBreath(true); breathLeft=120; $('breathTime').textContent='2:00'; };
+
+/* ================= F4 Shop ================= */
+const PRODUCTS={
+  chair:{name:'Kerusi Rotan',cat:'Handicraft · Johor',seller:'Sold by Rotan Craft Muar (sample seller)',price:'RM 289',model:'models/rattan-chair.glb',orbit:'35deg 70deg 105%',
+    opts:'<div class="optlabel">Size</div><div class="optrow"><span>W 60 cm</span><span>D 55 cm</span><span>H 90 cm</span></div><div class="optlabel" style="margin-top:10px">Finish</div><div class="optrow" data-sel><button class="on">Natural</button><button>Dark walnut</button></div>',
+    ar:'View in my room (AR)',fit:'AR shows the chair at true size in your room. Colours may look slightly different on screen.',hs:[['Hand-woven rattan','0 0.72 -0.24'],['Removable cushion','0.15 0.54 0.1']]},
+  songkok:{name:'Songkok Baldu Hitam',cat:'Traditional wear · Kelantan',seller:'Sold by Songkok Warisan Kota Bharu (sample seller)',price:'RM 45',model:'models/songkok.glb',orbit:'20deg 68deg 115%',
+    opts:'<div class="optlabel">Size (inches)</div><div class="optrow" data-sel><button>21</button><button class="on">22</button><button>23</button><button>24</button></div>',
+    ar:'Try on with front camera (AR)',fit:'Try-on is a preview only: measure your head and check the size chart before buying. Face images are processed on your phone and never uploaded.',hs:[['Velvet (baldu)','0.1 0.1 0.02'],['Firm crown','0 0.125 0']]}
+};
+let prod='chair'; const mvShop=$('mvShop');
+function setProd(p){prod=p; const d=PRODUCTS[p];
+  document.querySelectorAll('#prodSeg button').forEach(b=>b.classList.toggle('on',b.dataset.p===p));
+  $('prodName').textContent=d.name;$('prodCat').textContent=d.cat;$('prodSeller').textContent=d.seller;$('prodPrice').textContent=d.price;
+  $('prodOpts').innerHTML=d.opts;$('prodAR').textContent=d.ar;$('fitNote').textContent=d.fit;
+  mvShop.setAttribute('src',d.model);mvShop.setAttribute('camera-orbit',d.orbit);mvShop.cameraOrbit=d.orbit;setHotspots(mvShop,d.hs);
+  $('prodOpts').querySelectorAll('[data-sel] button').forEach(b=>b.onclick=()=>{b.parentNode.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));});}
+document.querySelectorAll('#prodSeg button').forEach(b=>b.onclick=()=>setProd(b.dataset.p));
+$('prodAR').onclick=()=>{ if(mvShop.canActivateAR){try{mvShop.activateAR();return;}catch(e){}} go('ar-'+prod); };
+$('addCart').onclick=()=>toast('Added to cart · '+PRODUCTS[prod].name);
+$('shareAR').onclick=async()=>{const url=location.href.split('#')[0]+'#shop';try{await navigator.clipboard.writeText(url);toast('AR link copied · paste it in WhatsApp or your shop page');}catch(e){toast('AR link ready to share');}};
+$('capBtn').onclick=()=>{const p=$('pipeline');p.classList.add('show');const st=p.querySelectorAll('.pstep');st.forEach(x=>x.classList.remove('done'));
+  st.forEach((x,i)=>setTimeout(()=>{x.classList.add('done'); if(i===st.length-1) toast('3D model ready · AR link created');},700*(i+1)));};
+
+/* ================= F5 Flood ================= */
+function setFloodTab(t){document.querySelectorAll('#floodSeg button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  ['map','ar','drill'].forEach(x=>$('fp-'+x).style.display=x===t?'block':'none'); if(t==='drill') renderDrill(true);}
+document.querySelectorAll('#floodSeg button').forEach(b=>b.onclick=()=>setFloodTab(b.dataset.t));
+function drawFloodMap(){
+  let s=`<rect width="340" height="190" fill="#eef1e6"/>`;
+  s+=`<path d="M0 120 C60 100 110 150 170 128 S270 90 340 112 L340 190 L0 190Z" fill="#e53935" opacity=".18"/>`;
+  s+=`<path d="M0 138 C60 118 110 168 170 146 S270 108 340 130" stroke="#5aa9e6" stroke-width="14" fill="none" stroke-linecap="round"/>`;
+  s+=`<text x="250" y="150" font-size="9" font-weight="700" fill="#2b6fa8">Sungai Melati</text><text x="200" y="182" font-size="9" font-weight="800" fill="#c62828">Flood-risk zone</text>`;
+  s+=`<path d="M20 30 H320 M60 0 V190 M200 0 V110 M20 80 H330" stroke="#fff" stroke-width="7"/>`;
+  s+=`<path d="M100 104 C100 80 130 70 160 60 S230 40 262 36" stroke="#16a06a" stroke-width="4" fill="none" stroke-dasharray="7 5" stroke-linecap="round"/>`;
+  s+=`<circle cx="100" cy="106" r="14" fill="#1f6fd1" opacity=".18"/><circle cx="100" cy="106" r="6" fill="#1f6fd1" stroke="#fff" stroke-width="2.5"/><text x="100" y="128" font-size="9" font-weight="800" text-anchor="middle" fill="#1f4f8f">You</text>`;
+  s+=`<rect x="250" y="20" width="26" height="22" rx="6" fill="#16a06a"/><text x="263" y="35" font-size="10" font-weight="800" text-anchor="middle" fill="#fff">PPS</text><text x="263" y="56" font-size="8.5" font-weight="700" text-anchor="middle" fill="#0b6b45">1.2 km</text>`;
+  s+=`<rect x="160" y="160" width="20" height="10" rx="3" fill="#fb8c00"/><text x="184" y="168" font-size="8" font-weight="700" fill="#7a3e00">Road closed</text>`;
+  $('floodMap').innerHTML=s;
+}
+const CHECK=['IC, passport & important documents (waterproof bag)','Medicine & prescriptions','Drinking water & dry food for 3 days','Phone, charger & power bank','Torchlight & spare batteries'];
+function drawChecklist(){ const done=S.check||[]; $('checklist').innerHTML=CHECK.map((c,i)=>`<button class="chk ${done.includes(i)?'on':''}" data-i="${i}"><i></i>${c}</button>`).join('');
+  $('chkCount').textContent=done.length+' of 5 packed';
+  $('checklist').querySelectorAll('.chk').forEach(b=>b.onclick=()=>{const i=+b.dataset.i;S.check=S.check||[];S.check=S.check.includes(i)?S.check.filter(x=>x!==i):[...S.check,i];save();drawChecklist();});}
+function drawWater(cm){
+  const g=200, px=cm*0.8, top=g-px;
+  let s=`<svg viewBox="0 0 340 220"><rect width="340" height="220" fill="#cfe3f3"/><rect y="${g}" width="340" height="20" fill="#9c9284"/>`;
+  s+=`<rect x="150" y="80" width="150" height="120" fill="#f3e3c3"/><path d="M140 82 L225 30 L310 82Z" fill="#b5523b"/><rect x="170" y="130" width="34" height="70" fill="#8a5a2b"/><rect x="230" y="105" width="44" height="34" fill="#a8d0f0" stroke="#fff" stroke-width="3"/>`;
+  s+=`<rect x="70" y="${g-34}" width="66" height="22" rx="7" fill="#d64545"/><rect x="82" y="${g-48}" width="40" height="18" rx="6" fill="#e07070"/><circle cx="84" cy="${g-10}" r="9" fill="#333"/><circle cx="124" cy="${g-10}" r="9" fill="#333"/>`;
+  s+=`<circle cx="42" cy="${g-118}" r="9" fill="#e0b48a"/><rect x="34" y="${g-108}" width="16" height="50" rx="6" fill="#1f6fd1"/><rect x="35" y="${g-60}" width="6" height="60" fill="#33445c"/><rect x="43" y="${g-60}" width="6" height="60" fill="#33445c"/>`;
+  s+=`<text x="58" y="${g-122}" font-size="8" font-weight="700" fill="#33445c">1.6 m</text>`;
+  if(cm>0) s+=`<path d="M0 ${top} q20 -5 40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 V220 H0Z" fill="#7a6a4a" opacity=".62"/><path d="M0 ${top} q20 -5 40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0" stroke="#e8dcc0" stroke-width="2" fill="none"/>`;
+  [15,30,60,100].forEach(h=>{const y=g-h*0.8; s+=`<line x1="4" y1="${y}" x2="16" y2="${y}" stroke="#0f1b2d" stroke-width="1.5"/><text x="19" y="${y+3}" font-size="7.5" font-weight="800" fill="#0f1b2d">${h}</text>`;});
+  s+=`<rect x="8" y="8" width="96" height="20" rx="10" fill="rgba(15,27,45,.75)"/><text x="56" y="22" font-size="9.5" font-weight="800" text-anchor="middle" fill="#fff">AR · ${cm} cm water</text></svg>`;
+  $('waterScene').innerHTML=s; $('wVal').textContent=cm+' cm';
+  const m=cm>=100?['#b71c1c','Ground floor flooded. Switch off the main power and move to the PPS or an upper floor now.']:cm>=60?['#c62828','60 cm of moving water can sweep away SUVs and trucks.']:cm>=30?['#d84315','30 cm of moving water can carry away most cars. Never drive through flood water.']:cm>=15?['#e65100','15 cm of moving water can knock an adult off their feet. Do not walk through it.']:cm>0?['#8d6e00','Shallow water can still hide open drains and holes. Avoid walking through it.']:['#2e7d32','No water on the street right now.'];
+  $('wMsg').style.color=m[0]; $('wMsg').textContent=m[1];
+}
+$('wSlider').oninput=e=>drawWater(+e.target.value);
+const DRILL=[
+  ['Water starts entering your house. What do you do first?',['Record a video for social media','Switch off the main electricity at the DB box','Wait to see if the water goes down'],1,'Electricity and flood water are a deadly mix. Switch off the main power first, if it is safe to reach.'],
+  ['Your usual route to the PPS has 30 cm of fast-flowing water. What now?',['Walk through it carefully','Drive through quickly','Turn back and take the higher route'],2,'Moving water this deep can knock you down or float a car. Always use the higher route.'],
+  ['What should you take when you evacuate?',['Your emergency bag: IC, medicine, water, phone and power bank','The television and laptop','Nothing, so you can move faster'],0,'A ready emergency bag keeps your documents and essentials safe for the first few days.']
+];
+let di=0,dscore=0;
+function renderDrill(reset){ if(reset){di=0;dscore=0;}
+  const box=$('drillBox');
+  if(di>=DRILL.length){ box.innerHTML=`<div class="result" style="padding:10px"><div class="ring" style="background:conic-gradient(${dscore===3?'#16a06a':'#d35400'} ${dscore/3*100}%,#e3e9f2 0)"><div>${dscore}/3</div></div><h3 style="font-size:18px;font-weight:800">${dscore===3?'You are flood-ready!':'Practise again to be ready'}</h3><p style="font-size:13px;color:var(--muted);margin-top:6px">Safe decisions: ${dscore} of 3. Your school can run this drill before the monsoon season.</p><button class="btn primary block" style="margin-top:14px" onclick="renderDrill(true)">Restart drill</button></div>`; return; }
+  const [q,o,a,why]=DRILL[di];
+  box.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span class="chip" style="background:#fdeee2;color:#a03f00">Flash flood drill · step ${di+1} of 3</span><span style="font-size:12px;font-weight:700;color:var(--muted)">Score ${dscore}</span></div><h3 style="font-size:16px;font-weight:800;line-height:1.35;margin-bottom:12px">${q}</h3>${o.map((t,i)=>`<button class="opt" data-i="${i}"><span>${'ABC'[i]}</span>${t}</button>`).join('')}<div class="explain" id="dExp"></div><button class="btn primary block" id="dNext" disabled>${di===2?'See result':'Next step'}</button>`;
+  let done=false;
+  box.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{ if(done)return; done=true; const i=+b.dataset.i; box.querySelectorAll('.opt')[a].classList.add('correct'); if(i!==a) b.classList.add('wrong'); else dscore++;
+    const ex=$('dExp'); ex.innerHTML=(i===a?'<b style="color:#0b6b45">Safe choice.</b> ':'<b style="color:#b02a2a">Unsafe.</b> ')+why; ex.classList.add('show'); $('dNext').disabled=false; });
+  $('dNext').onclick=()=>{di++;renderDrill(false);};
+}
+
+/* ---------------- router ---------------- */
+function route(){
+  const h=(location.hash||'#home').slice(1);
+  let view='home',tab='home';
+  $('arview').classList.remove('active');
+  if(h.startsWith('lesson-')&&LESSONS[h.slice(7)]){view='lesson';tab='learn';renderLesson(h.slice(7));}
+  else if(h.startsWith('quiz-')&&QUIZ[h.slice(5)]){view='quiz';tab='learn';renderQuiz(h.slice(5));}
+  else if(h.startsWith('ar-')&&(LESSONS[h.slice(3)]||ARCFG[h.slice(3)])){const k=h.slice(3);
+    if(LESSONS[k]){view='lesson';tab='learn';renderLesson(k);} else {view={fort:'heritage',chair:'shop',songkok:'shop',route:'flood'}[k];tab=view==='flood'?'alerts':'home';}
+    openAR(k);}
+  else if(h==='kelas'){view='kelas';tab='learn';renderHome();}
+  else if(h==='lab'){view='lab';tab='learn';}
+  else if(h==='class'){view='class';tab='class';renderClass();}
+  else if(h==='me'){view='me';tab='me';renderMe();}
+  else if(h==='heritage'){view='heritage';}
+  else if(h==='wellness'){view='wellness';panoW=0;}
+  else if(h==='shop'){view='shop';}
+  else if(h==='flood'){view='flood';tab='alerts';}
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='v-'+view));
+  document.querySelectorAll('nav.tabs a').forEach(a=>a.classList.toggle('on',a.dataset.tab===tab));
+  if(!h.startsWith('ar-')) $('main').scrollTop=0;
+  if(view==='lab'){setTimeout(()=>window.dispatchEvent(new Event('resize')),30);}
+  if(view==='wellness'){setTimeout(applyPano,50);}
+}
+window.addEventListener('hashchange',route);
+drawTrail(); setEra('1512'); setLang('en'); setScene('tea'); panoLoop(); setProd('chair'); drawFloodMap(); drawChecklist(); drawWater(30);
+applyLabels(); route();
+const scn=document.querySelector('a-scene'); const labInit=()=>{initLabTextures();updateLab(false);}; if(scn.hasLoaded) labInit(); else scn.addEventListener('loaded',labInit);
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{ if(scn.hasLoaded){initLabTextures();updateLab(false);} });
+</script>
+</body>
+</html>
