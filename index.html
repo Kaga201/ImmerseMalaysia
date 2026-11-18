@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Immerse Malaysia – XR Tourism App Prototype (Alpha)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="lib/models.js"></script>
+<script>
+/* Serve the embedded 3D models (lib/models.js) to the 3D viewer from memory, so no network request is needed. */
+(function(){const M=window.KXR_MODELS||{};const cache={};const orig=window.fetch.bind(window);
+window.fetch=function(input,init){try{const url=typeof input==='string'?input:(input&&input.url)||'';const m=url.match(/models\/([a-z-]+)\.glb(?:[?#]|$)/);
+if(m&&M[m[1]]){if(!cache[m[1]]){const b=atob(M[m[1]]);const u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);cache[m[1]]=u.buffer;}
+const buf=cache[m[1]].slice(0);return Promise.resolve(new Response(buf,{status:200,headers:{'Content-Type':'model/gltf-binary','Content-Length':String(buf.byteLength)}}));}}catch(e){}
+return orig(input,init);};})();
+</script>
+<script src="lib/aframe.min.js"></script>
+<script src="lib/model-viewer.min.js"></script>
+<style>
+:root{
+  --bg:#eef3fa; --card:#ffffff; --ink:#0f1b2d; --muted:#5d6c82; --line:#e3e9f2;
+  --primary:#1f6fd1; --primary-dk:#0d4fa3; --primary-lt:#e6f0fc;
+  --accent:#ffb21e; --ok:#16a06a; --ok-lt:#e3f6ee; --bad:#d64545; --bad-lt:#fdecec;
+  --radius:18px; --shadow:0 6px 22px rgba(18,42,82,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);
+  background:radial-gradient(1200px 600px at 20% 0%,#dbe8fb 0%,transparent 60%),radial-gradient(900px 500px at 100% 100%,#fdeccc 0%,transparent 55%),#e9eef6;
+  display:flex;justify-content:center;align-items:center;min-height:100vh}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input{font-family:inherit}
+.app{position:relative;width:100%;max-width:420px;height:100vh;background:var(--bg);display:flex;flex-direction:column;overflow:hidden}
+@media (min-width:520px){.app{height:min(880px,calc(100vh - 40px));border-radius:32px;box-shadow:0 30px 80px rgba(16,38,77,.25),0 0 0 10px #0f1b2d}}
+main{flex:1;overflow-y:auto;overflow-x:hidden;padding:0 18px 96px}
+.view{display:none;animation:fade .25s ease}
+.view.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* header */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:18px 0 10px}
+.brand{display:flex;align-items:center;gap:10px}
+.logo{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,#1f6fd1,#14b8a6);display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px;letter-spacing:-.5px;box-shadow:0 6px 14px rgba(31,111,209,.35)}
+.brand small{display:block;font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.3px;text-transform:uppercase}
+.brand b{font-size:18px;font-weight:800;letter-spacing:-.3px}
+.avatar{width:38px;height:38px;border-radius:50%;background:#ffd98a;display:grid;place-items:center;font-weight:800;font-size:14px;color:#7a4b00}
+.backbar{display:flex;align-items:center;gap:10px;padding:16px 0 10px}
+.iconbtn{width:40px;height:40px;border-radius:12px;background:var(--card);display:grid;place-items:center;box-shadow:var(--shadow)}
+.backbar h2{font-size:18px;font-weight:800;letter-spacing:-.3px}
+.backbar p{font-size:12px;color:var(--muted);font-weight:600}
+
+h1{font-size:24px;font-weight:800;letter-spacing:-.5px;line-height:1.2}
+.hello p{color:var(--muted);font-size:14px;margin-top:4px}
+.section-title{display:flex;justify-content:space-between;align-items:baseline;margin:22px 2px 10px}
+.section-title h3{font-size:16px;font-weight:800}
+.section-title span{font-size:12px;color:var(--muted);font-weight:600}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;background:var(--primary-lt);color:var(--primary-dk)}
+.chip.amber{background:#fff3d6;color:#8a5a00}.chip.green{background:var(--ok-lt);color:#0b6b45}.chip.purple{background:#efe7fb;color:#5b2fa3}.chip.dark{background:#0f1b2d;color:#fff}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:14px;border-radius:14px;padding:13px 16px;transition:transform .08s ease,background .2s}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:var(--primary);color:#fff;box-shadow:0 8px 18px rgba(31,111,209,.3)}
+.btn.primary:hover{background:var(--primary-dk)}
+.btn.ghost{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+.btn.soft{background:var(--primary-lt);color:var(--primary-dk)}
+.btn.block{width:100%}
+.btn[disabled]{opacity:.45;pointer-events:none}
+
+/* join card */
+.join{margin-top:18px;background:linear-gradient(135deg,#1f6fd1 0%,#1557b0 60%,#0e3f86 100%);color:#fff;border-radius:22px;padding:18px;position:relative;overflow:hidden}
+.join::after{content:"";position:absolute;right:-40px;top:-40px;width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,.08)}
+.join h4{font-size:15px;font-weight:800}
+.join p{font-size:12.5px;opacity:.85;margin:4px 0 12px}
+.join form{display:flex;gap:8px;position:relative;z-index:1}
+.join input{flex:1;min-width:0;border:none;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:700;letter-spacing:1px;text-transform:uppercase;outline:none}
+.join input::placeholder{letter-spacing:0;text-transform:none;font-weight:500;color:#8a97ab}
+.join .btn{background:var(--accent);color:#3d2700;padding:12px 16px}
+.joined{display:none;margin-top:12px;background:rgba(255,255,255,.14);border-radius:12px;padding:10px 12px;font-size:12.5px;font-weight:600;position:relative;z-index:1}
+.joined.show{display:block}
+.join .err{color:#ffd2d2;font-size:12px;margin-top:8px;display:none;position:relative;z-index:1}
+
+/* lesson cards */
+.lesson-list{display:grid;gap:12px}
+.lcard{display:flex;gap:14px;align-items:center;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px;text-align:left;width:100%}
+.thumb{width:74px;height:74px;border-radius:16px;flex-shrink:0;display:grid;place-items:center}
+.thumb svg{width:56px;height:56px}
+.lcard .meta{flex:1;min-width:0}
+.lcard h4{font-size:15px;font-weight:800;margin:5px 0 3px}
+.lcard p{font-size:12px;color:var(--muted)}
+.bar{height:6px;border-radius:6px;background:#e7edf5;margin-top:8px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--primary);border-radius:6px}
+.labcard{margin-top:12px;display:flex;gap:14px;align-items:center;width:100%;text-align:left;border-radius:22px;padding:16px;color:#fff;background:linear-gradient(135deg,#10233f,#1b3d6b);box-shadow:0 12px 26px rgba(16,35,63,.3)}
+.labcard h4{font-size:16px;font-weight:800;margin:6px 0 3px}
+.labcard p{font-size:12px;opacity:.8}
+.labcard .thumb{background:rgba(255,255,255,.08)}
+
+/* bottom nav */
+nav.tabs{position:absolute;left:12px;right:12px;bottom:12px;height:66px;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);border-radius:22px;box-shadow:0 10px 30px rgba(18,42,82,.16);display:flex;justify-content:space-around;align-items:center;z-index:30}
+nav.tabs a{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:700;color:#8a97ab;text-decoration:none;padding:6px 6px;border-radius:14px}
+nav.tabs a svg{width:22px;height:22px}
+nav.tabs a.on{color:var(--primary)}
+nav.tabs a.on svg{transform:translateY(-1px)}
+
+/* model viewer */
+.mvwrap{position:relative;border-radius:22px;overflow:hidden;background:radial-gradient(circle at 50% 35%,#ffffff 0%,#e3ecf7 70%);box-shadow:var(--shadow)}
+model-viewer{width:100%;height:340px;--poster-color:transparent;--progress-bar-color:var(--primary)}
+.mvwrap.dark{background:radial-gradient(circle at 50% 40%,#22345a 0%,#0b1426 75%)}
+.hotspot{background:#fff;border-radius:999px;border:2px solid var(--primary);width:14px;height:14px;padding:0;position:relative;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.hotspot .hs{position:absolute;left:18px;top:50%;transform:translateY(-50%);white-space:nowrap;background:rgba(15,27,45,.88);color:#fff;font-size:11px;font-weight:700;padding:4px 8px;border-radius:8px;pointer-events:none}
+.hotspot.l .hs{left:auto;right:18px}
+.nolabels .hotspot{display:none}
+.mvtools{display:flex;gap:8px;margin-top:12px}
+.mvtools .btn{flex:1;padding:12px 10px;font-size:13px}
+.hint{position:absolute;left:12px;top:12px;font-size:11px;font-weight:700;background:rgba(255,255,255,.9);color:var(--muted);padding:5px 9px;border-radius:999px;display:flex;gap:6px;align-items:center}
+.mvwrap.dark .hint{background:rgba(255,255,255,.12);color:#d6e2f5}
+.facts{display:grid;gap:10px;margin-top:4px}
+.fact{display:flex;gap:12px;align-items:flex-start;background:var(--card);border-radius:16px;padding:12px 14px;box-shadow:var(--shadow);font-size:13.5px;line-height:1.45}
+.fact b{display:grid;place-items:center;flex-shrink:0;width:26px;height:26px;border-radius:8px;background:var(--primary-lt);color:var(--primary-dk);font-size:12px}
+.lessonhead{display:flex;gap:6px;flex-wrap:wrap;margin:-2px 0 12px}
+
+/* AR preview */
+.arview{position:absolute;inset:0;z-index:50;display:none;background:#1a1a1a;color:#fff}
+.arview.active{display:block}
+.camfeed{position:absolute;inset:0;background:
+  linear-gradient(180deg,rgba(0,0,0,.25),transparent 18%,transparent 70%,rgba(0,0,0,.35)),
+  linear-gradient(180deg,#c9d1d9 0%,#b8c1ca 46%,#7a5332 46.2%,#8d6038 60%,#a26f42 100%)}
+.camfeed::before{content:"";position:absolute;left:0;right:0;top:46%;bottom:0;background:repeating-linear-gradient(98deg,rgba(255,255,255,.04) 0 6px,rgba(0,0,0,.05) 6px 13px);}
+.camfeed::after{content:"";position:absolute;left:8%;top:12%;width:34%;height:26%;border-radius:6px;background:linear-gradient(135deg,#eaf3ff,#cfdff2);box-shadow:0 0 0 6px #e9edf1;opacity:.65}
+.arview model-viewer{position:absolute;inset:0;width:100%;height:100%;background:transparent;opacity:0;transition:opacity .5s ease}
+.arview.placed model-viewer{opacity:1}
+.reticle{position:absolute;left:50%;top:64%;width:120px;height:44px;margin:-22px 0 0 -60px;border:3px solid rgba(255,255,255,.95);border-radius:50%;box-shadow:0 0 0 2px rgba(31,111,209,.6);opacity:0;transition:opacity .4s}
+.arview.found .reticle{opacity:1;animation:pulse 1.4s infinite}
+.arview.placed .reticle{opacity:0}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.artop{position:absolute;left:0;right:0;top:0;padding:16px;display:flex;align-items:center;gap:10px;z-index:3}
+.artop .iconbtn{background:rgba(0,0,0,.45);color:#fff;box-shadow:none}
+.artop h3{font-size:15px;font-weight:800;text-shadow:0 1px 4px rgba(0,0,0,.5)}
+.artop .chip{margin-left:auto;background:rgba(0,0,0,.5);color:#fff}
+.arnote{position:absolute;left:16px;right:16px;top:70px;z-index:3;background:rgba(15,27,45,.78);border-radius:12px;padding:9px 12px;font-size:11.5px;line-height:1.4;color:#dfe8f6}
+.arbottom{position:absolute;left:0;right:0;bottom:0;padding:18px 16px 22px;z-index:3;display:flex;flex-direction:column;gap:12px;align-items:center}
+.arpill{background:rgba(0,0,0,.6);padding:10px 16px;border-radius:999px;font-size:13px;font-weight:700;display:flex;gap:8px;align-items:center}
+.arbtns{display:flex;gap:10px;width:100%}
+.arbtns .btn{flex:1;background:rgba(255,255,255,.92);color:var(--ink)}
+.arbtns .btn.primary{background:var(--primary);color:#fff}
+
+/* lab */
+.labscene{height:330px;border-radius:22px;overflow:hidden;position:relative;box-shadow:var(--shadow);background:#dfe7f1}
+.labscene a-scene{width:100%;height:100%}
+.phpanel{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.stat{background:var(--card);border-radius:16px;padding:12px 14px;box-shadow:var(--shadow)}
+.stat small{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.stat b{font-size:26px;font-weight:800;letter-spacing:-.5px}
+.swatch{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:middle;margin-right:6px;box-shadow:inset 0 0 0 2px rgba(0,0,0,.08)}
+.labbtns{display:flex;gap:8px;margin-top:12px}
+.labbtns .btn{flex:1;padding:12px 8px;font-size:13px}
+.curve{margin-top:12px}
+.curve svg{width:100%;height:150px;display:block}
+.success{display:none;margin-top:12px;background:var(--ok-lt);color:#0b5c3c;border-radius:16px;padding:12px 14px;font-size:13px;line-height:1.45}
+.success.show{display:block}
+.scale{display:flex;height:10px;border-radius:6px;overflow:hidden;margin-top:8px}
+.scale i{flex:1}
+
+/* quiz */
+.qprog{display:flex;gap:6px;margin:4px 0 16px}
+.qprog i{flex:1;height:6px;border-radius:6px;background:#dbe3ee}
+.qprog i.done{background:var(--primary)}
+.qcard h3{font-size:18px;font-weight:800;line-height:1.35;margin-bottom:16px}
+.opt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--card);border:2px solid var(--line);border-radius:16px;padding:14px;margin-bottom:10px;font-size:14px;font-weight:600}
+.opt span{width:28px;height:28px;border-radius:9px;background:#f0f4fa;display:grid;place-items:center;font-weight:800;font-size:12px;color:var(--muted);flex-shrink:0}
+.opt.correct{border-color:var(--ok);background:var(--ok-lt)}.opt.correct span{background:var(--ok);color:#fff}
+.opt.wrong{border-color:var(--bad);background:var(--bad-lt)}.opt.wrong span{background:var(--bad);color:#fff}
+.explain{display:none;font-size:13px;line-height:1.5;background:#f6f8fc;border-radius:14px;padding:12px 14px;margin:4px 0 14px;color:#33445c}
+.explain.show{display:block}
+.result{text-align:center;padding:26px 18px}
+.ring{width:130px;height:130px;margin:6px auto 14px;border-radius:50%;display:grid;place-items:center}
+.ring div{width:104px;height:104px;border-radius:50%;background:var(--bg);display:grid;place-items:center;font-size:30px;font-weight:800}
+.badgebig{display:inline-flex;align-items:center;gap:8px;margin:14px 0 4px;background:#fff3d6;color:#7a4b00;padding:8px 14px;border-radius:999px;font-weight:800;font-size:13px}
+
+/* class (teacher) */
+.session{background:linear-gradient(135deg,#0f2747,#16457d);color:#fff;border-radius:22px;padding:18px}
+.session .code{font-size:30px;font-weight:800;letter-spacing:3px;margin:6px 0 2px}
+.session .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.session .btn{background:rgba(255,255,255,.14);color:#fff;padding:9px 12px;font-size:12px}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;background:rgba(22,160,106,.25);color:#7ff0bf;padding:4px 9px;border-radius:999px}
+.live i{width:7px;height:7px;border-radius:50%;background:#33e09a;animation:blink 1.2s infinite}
+@keyframes blink{50%{opacity:.25}}
+.joinbar{height:8px;background:rgba(255,255,255,.15);border-radius:8px;margin-top:10px;overflow:hidden}
+.joinbar i{display:block;height:100%;background:#33e09a;border-radius:8px}
+.ctrlgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ctrl{background:var(--card);border-radius:16px;box-shadow:var(--shadow);padding:14px;text-align:left}
+.ctrl b{display:block;font-size:13.5px;margin-top:8px}
+.ctrl small{font-size:11.5px;color:var(--muted)}
+.ctrl .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--primary-lt);color:var(--primary-dk)}
+.ctrl.on{background:#0f1b2d;color:#fff}.ctrl.on small{color:#b6c3d6}.ctrl.on .ic{background:rgba(255,255,255,.12);color:#fff}
+select{font-family:inherit;width:100%;padding:12px;border-radius:12px;border:2px solid var(--line);font-size:14px;font-weight:600;background:#fff;color:var(--ink)}
+.qbars{display:grid;gap:10px}
+.qbar{font-size:12.5px;font-weight:600}
+.qbar .t{display:flex;justify-content:space-between;margin-bottom:5px}
+.qbar .track{height:10px;border-radius:8px;background:#e7edf5;overflow:hidden}
+.qbar .track i{display:block;height:100%;border-radius:8px;width:0;transition:width 1s ease}
+.students{display:grid;gap:8px}
+.st{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:14px;padding:10px 12px;box-shadow:var(--shadow);font-size:13px;font-weight:600}
+.st .ini{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-size:11.5px;font-weight:800}
+.st .s{margin-left:auto;font-size:11.5px;font-weight:700;display:flex;align-items:center;gap:6px;color:var(--muted)}
+.st .s i{width:8px;height:8px;border-radius:50%}
+.sample{font-size:11px;color:var(--muted);text-align:center;margin-top:14px}
+
+/* me */
+.profile{display:flex;gap:14px;align-items:center}
+.profile .avatar{width:62px;height:62px;font-size:22px}
+.profile h2{font-size:19px;font-weight:800}
+.profile p{font-size:12.5px;color:var(--muted);font-weight:600}
+.statsrow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}
+.statsrow .stat{text-align:center;padding:12px 6px}
+.statsrow .stat b{font-size:22px}
+.badges{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.bdg{text-align:center;font-size:10.5px;font-weight:700;color:var(--muted)}
+.bdg .ico{width:58px;height:58px;margin:0 auto 6px;border-radius:18px;display:grid;place-items:center;background:#e4eaf2;filter:grayscale(1);opacity:.55}
+.bdg.got .ico{filter:none;opacity:1;box-shadow:0 6px 14px rgba(0,0,0,.12)}
+.bdg.got{color:var(--ink)}
+.bdg .ico svg{width:30px;height:30px}
+.setting{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 0;border-bottom:1px solid var(--line);font-size:14px;font-weight:600}
+.setting:last-child{border-bottom:none}
+.setting small{display:block;font-size:11.5px;color:var(--muted);font-weight:500;margin-top:2px}
+.switch{width:46px;height:28px;border-radius:999px;background:#cfd8e4;position:relative;flex-shrink:0;transition:background .2s}
+.switch::after{content:"";position:absolute;left:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:left .2s}
+.switch.on{background:var(--primary)}.switch.on::after{left:21px}
+
+.toast{position:absolute;left:50%;bottom:92px;transform:translate(-50%,20px);background:#0f1b2d;color:#fff;font-size:13px;font-weight:700;padding:11px 16px;border-radius:14px;opacity:0;pointer-events:none;transition:all .25s;z-index:80;white-space:nowrap;max-width:90%;overflow:hidden;text-overflow:ellipsis}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.spacer{height:14px}
+
+/* ---- hub ---- */
+.alertstrip{display:flex;gap:12px;align-items:center;margin-top:16px;padding:12px 14px;border-radius:18px;background:#fff4e5;border:1.5px solid #ffd59a;color:#7a3e00;text-decoration:none}
+.alertstrip .aic{width:38px;height:38px;border-radius:12px;background:#d35400;color:#fff;display:grid;place-items:center;flex-shrink:0}
+.alertstrip b{display:block;font-size:13.5px}.alertstrip small{font-size:12px;opacity:.85;line-height:1.35;display:block}
+.hub{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{position:relative;display:block;background:var(--card);border-radius:20px;box-shadow:var(--shadow);padding:14px;text-decoration:none;color:var(--ink);min-height:128px}
+.tile.wide{grid-column:span 2;display:flex;gap:12px;align-items:center;min-height:auto}
+.tile b{display:block;font-size:15px;font-weight:800;margin-top:10px}.tile.wide b{margin-top:0}
+.tile small{display:block;font-size:11.5px;color:var(--muted);font-weight:600;margin-top:3px;line-height:1.35}
+.tile .ti{position:absolute;right:12px;top:12px;width:22px;height:22px;border-radius:7px;background:var(--l);color:var(--c);font-size:11px;font-weight:800;display:grid;place-items:center}
+.tic{width:44px;height:44px;border-radius:14px;background:var(--l);color:var(--c);display:grid;place-items:center}
+.tic svg{width:24px;height:24px}
+.infoline{display:flex;gap:10px;align-items:center;margin-top:12px;font-size:12.5px;color:var(--muted);font-weight:600;padding:12px 14px}
+/* ---- segmented ---- */
+.seg{display:flex;background:#e2e9f3;border-radius:14px;padding:4px;gap:4px}
+.seg button{flex:1;padding:9px 6px;border-radius:11px;font-size:12.5px;font-weight:700;color:var(--muted)}
+.seg button.on{background:#fff;color:var(--ink);box-shadow:0 2px 8px rgba(18,42,82,.1)}
+/* ---- heritage ---- */
+.eranote{font-size:13px;line-height:1.5;color:#33445c;margin-top:10px;padding:0 2px}
+.langs{display:flex;gap:4px}
+.langs button{font-size:11.5px;font-weight:700;padding:5px 8px;border-radius:8px;background:#f0f4fa;color:var(--muted)}
+.langs button.on{background:var(--primary);color:#fff}
+.player{display:flex;gap:12px;align-items:center;margin-top:10px}
+.play{width:44px;height:44px;border-radius:50%;background:#c0392b;color:#fff;display:grid;place-items:center;flex-shrink:0;box-shadow:0 6px 14px rgba(192,57,43,.3)}
+.transcript{font-size:12.5px;line-height:1.5;color:#33445c;margin-top:10px;background:#f6f8fc;border-radius:12px;padding:10px 12px}
+/* ---- wellness ---- */
+.moods{display:flex;justify-content:space-between;margin-top:10px}
+.moods button{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10.5px;font-weight:700;color:var(--muted);padding:6px 4px;border-radius:12px;width:19%}
+.moods button svg{width:38px;height:38px}
+.moods button.on{background:#e0f5f0;color:#0d6b58}
+.support{display:none;margin-top:10px;background:#fff8e8;border:1.5px solid #ffe0a3;border-radius:16px;padding:12px 14px;font-size:13px;line-height:1.5}
+.support.show{display:block}
+.scenes{display:flex;gap:8px;overflow-x:auto}
+.scenes button{flex-shrink:0;padding:9px 12px;border-radius:12px;font-size:12.5px;font-weight:700;background:var(--card);box-shadow:var(--shadow);color:var(--muted)}
+.scenes button.on{background:#17a589;color:#fff}
+.pano{position:relative;height:280px;border-radius:22px;overflow:hidden;margin-top:12px;box-shadow:var(--shadow);touch-action:pan-y;cursor:grab;background:#9cc8e8}
+.panoin{position:absolute;left:0;top:0;height:100%;display:flex;will-change:transform}
+.panoin svg{height:100%;width:auto;flex-shrink:0;display:block}
+.orbwrap{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+.orb{width:120px;height:120px;border-radius:50%;background:radial-gradient(circle at 35% 35%,rgba(255,255,255,.95),rgba(178,245,229,.75) 45%,rgba(23,165,137,.45) 75%);box-shadow:0 0 40px rgba(255,255,255,.7);transform:scale(.55);transition:transform 4s ease-in-out}
+.orbtxt{position:absolute;font-size:15px;font-weight:800;color:#0b3d33;text-shadow:0 1px 6px rgba(255,255,255,.8)}
+.breathrow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.breathrow>div{background:var(--card);border-radius:16px;padding:11px 14px;box-shadow:var(--shadow)}
+.breathrow small{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.breathrow b{font-size:15px;font-weight:800}
+/* ---- shop ---- */
+.optrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.optrow button,.optrow span{padding:7px 11px;border-radius:10px;font-size:12px;font-weight:700;background:#f0f4fa;color:#33445c;border:2px solid transparent}
+.optrow button.on{border-color:#8e44ad;background:#f6eefb;color:#5b2fa3}
+.optlabel{font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:6px}
+.fitnote{font-size:12px;line-height:1.45;color:#5b4a1f;background:#fff8e8;border-radius:12px;padding:9px 11px;margin-top:12px}
+.sellerstats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.sellerstats div{background:#f6f8fc;border-radius:12px;padding:10px 4px}
+.sellerstats b{display:block;font-size:18px;font-weight:800}.sellerstats small{font-size:11px;color:var(--muted);font-weight:700}
+.pipeline{display:none;margin-top:10px}.pipeline.show{display:grid;gap:8px}
+.pstep{display:flex;gap:10px;align-items:center;font-size:12.5px;font-weight:600;color:#9aa6b6}
+.pstep i{width:18px;height:18px;border-radius:50%;border:2px solid #cfd8e4;flex-shrink:0}
+.pstep.done{color:var(--ink)}.pstep.done i{background:var(--ok);border-color:var(--ok)}
+/* ---- flood ---- */
+.floodalert{background:linear-gradient(135deg,#b84100,#e2672a);color:#fff;border-radius:22px;padding:16px;box-shadow:0 12px 26px rgba(184,65,0,.3)}
+.floodalert .lvl{font-size:11px;font-weight:800;letter-spacing:.6px;background:rgba(255,255,255,.2);padding:4px 9px;border-radius:999px}
+.floodalert h3{font-size:16px;font-weight:800;margin-top:10px}
+.floodalert .big{font-size:30px;font-weight:800;letter-spacing:-.5px}
+.gauge{position:relative;display:flex;height:10px;border-radius:6px;overflow:visible;margin-top:10px}
+.gauge i:first-child{border-radius:6px 0 0 6px}.gauge i:nth-child(4){border-radius:0 6px 6px 0}
+.gauge .mark{position:absolute;top:-5px;width:4px;height:20px;background:#fff;border-radius:2px;box-shadow:0 0 0 2px rgba(0,0,0,.25)}
+.glabels{display:flex;justify-content:space-between;font-size:10px;font-weight:700;opacity:.9;margin-top:6px}
+.fpanel{margin-top:12px}
+.chk{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);font-size:13.5px;font-weight:600;width:100%;text-align:left}
+.chk:last-child{border-bottom:none}
+.chk i{width:22px;height:22px;border-radius:7px;border:2px solid #cfd8e4;flex-shrink:0;display:grid;place-items:center}
+.chk.on i{background:var(--ok);border-color:var(--ok)}
+.chk.on i::after{content:"";width:9px;height:5px;border-left:2.5px solid #fff;border-bottom:2.5px solid #fff;transform:rotate(-45deg) translate(1px,-1px)}
+.waterscene{border-radius:22px;overflow:hidden;box-shadow:var(--shadow);background:#cfe3f3}
+.waterscene svg{display:block;width:100%}
+.wmsg{font-size:13px;line-height:1.5;margin-top:10px;font-weight:600}
+/* ---- AR overlay variants ---- */
+.arview.bg-room .camfeed{background:linear-gradient(180deg,rgba(0,0,0,.2),transparent 18%,transparent 70%,rgba(0,0,0,.3)),linear-gradient(180deg,#efe3d0 0%,#e6d6bd 52%,#b9a58a 52.2%,#c9b598 70%,#d8c6aa 100%)}
+.arview.bg-room .camfeed::before{top:52%;background:repeating-linear-gradient(90deg,rgba(0,0,0,.06) 0 2px,transparent 2px 90px),repeating-linear-gradient(0deg,rgba(0,0,0,.05) 0 2px,transparent 2px 60px)}
+.arview.bg-room .camfeed::after{left:58%;top:20%;width:30%;height:22%;background:linear-gradient(135deg,#a8c9e8,#e8f2fb);box-shadow:0 0 0 7px #fff}
+.arview.bg-site .camfeed{background:linear-gradient(180deg,rgba(0,0,0,.15),transparent 18%,transparent 70%,rgba(0,0,0,.3)),linear-gradient(180deg,#8ec5f0 0%,#cfe6f7 50%,#7fae5f 50.2%,#6f9f52 66%,#9c9284 66.2%,#8a8174 100%)}
+.arview.bg-site .camfeed::before{top:66%;background:repeating-linear-gradient(90deg,transparent 0 46%,rgba(255,255,255,.7) 46% 54%,transparent 54% 100%);background-size:100% 14px;background-repeat:no-repeat;background-position:0 50%}
+.arview.bg-site .camfeed::after{display:none}
+.arview.bg-face .camfeed{background:radial-gradient(circle at 50% 40%,#e9eef4 0%,#c9d3de 70%)}
+.arview.bg-face .camfeed::before,.arview.bg-face .camfeed::after{display:none}
+.facesil{display:none;position:absolute;left:50%;top:30%;width:230px;margin-left:-115px}
+.arview.bg-face .facesil{display:block}
+.arview.bg-face .reticle{display:none}
+.arview.bg-face model-viewer{top:26%;height:17%;bottom:auto;z-index:2}
+.navarrows{display:none;position:absolute;left:0;right:0;top:40%;bottom:24%;align-items:center;flex-direction:column;justify-content:flex-end;gap:6px;opacity:0;transition:opacity .5s}
+.arview.navmode .navarrows{display:flex}
+.arview.navmode.placed .navarrows{opacity:1}
+.arview.navmode model-viewer,.arview.navmode .reticle{display:none}
+.navarrows i{width:0;height:0;border-left:46px solid transparent;border-right:46px solid transparent;border-bottom:34px solid rgba(31,111,209,.85);filter:drop-shadow(0 4px 6px rgba(0,0,0,.3));animation:chev 1.2s infinite}
+.navarrows i:nth-child(1){transform:scale(.55);animation-delay:.4s}.navarrows i:nth-child(2){transform:scale(.75);animation-delay:.2s}
+@keyframes chev{0%,100%{opacity:.35}50%{opacity:1}}
+.navpin{background:#16a06a;color:#fff;font-weight:800;font-size:12px;padding:6px 10px;border-radius:10px;margin-bottom:10px}
+
+/* ---- destination home ---- */
+.places{display:flex;gap:8px;overflow-x:auto;margin:2px 0 12px;scrollbar-width:none}
+.places button{flex-shrink:0;padding:8px 14px;border-radius:999px;font-size:12.5px;font-weight:700;background:var(--card);color:var(--muted);box-shadow:var(--shadow)}
+.places button.on{background:#0f1b2d;color:#fff}
+.hero{position:relative;overflow:hidden;border-radius:24px;padding:18px;color:#fff;background:linear-gradient(135deg,#8e2f22 0%,#b8452f 55%,#d9774a 100%);box-shadow:0 14px 30px rgba(142,47,34,.3);min-height:150px}
+.herotxt{position:relative;z-index:2;max-width:62%}
+.hero h1{font-size:30px;margin:8px 0 4px;color:#fff}
+.hero p{font-size:12.5px;line-height:1.45;opacity:.92}
+.heroart{position:absolute;right:-6px;bottom:-4px;width:170px;opacity:.95;z-index:1}
+.status{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.status a{background:var(--card);border-radius:16px;padding:10px;box-shadow:var(--shadow);text-decoration:none;color:var(--ink)}
+.status small,.hstats small{display:block;font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+.status b,.hstats b{display:flex;align-items:center;gap:6px;font-size:15px;font-weight:800;margin-top:3px}
+.status b i,.hstats b i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.status span,.hstats span{font-size:11px;color:var(--muted);font-weight:600}
+/* ---- clean & health ---- */
+.cleanhero{display:flex;gap:14px;align-items:center;border-radius:22px;padding:16px;color:#fff;background:linear-gradient(135deg,#0f6f5c,#17a589);box-shadow:0 12px 26px rgba(23,165,137,.3)}
+.cleanhero small{font-size:11px;font-weight:700;opacity:.85;text-transform:uppercase;letter-spacing:.4px}
+.cleanhero h3{font-size:17px;font-weight:800;margin:2px 0}
+.cleanhero p{font-size:12px;opacity:.9;line-height:1.4}
+.hstats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.hstats>div{background:var(--card);border-radius:16px;padding:10px;box-shadow:var(--shadow)}
+.placelist{display:grid;gap:8px}
+.pitem{display:flex;gap:12px;align-items:center;background:var(--card);border-radius:16px;padding:12px;box-shadow:var(--shadow)}
+.pitem .grade{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-weight:800;font-size:16px;flex-shrink:0}
+.pitem .info{flex:1;min-width:0}
+.pitem b{font-size:13.5px;display:block}
+.pitem small{font-size:11.5px;color:var(--muted);font-weight:600}
+.pitem .stars{color:#f5a623;font-size:12px;font-weight:800;letter-spacing:.5px}
+.pitem .go{padding:8px 10px;border-radius:10px;background:var(--primary-lt);color:var(--primary-dk);font-size:11.5px;font-weight:800;flex-shrink:0}
+.photo{display:flex;align-items:center;justify-content:center;height:84px;border:2px dashed #c9d4e3;border-radius:14px;margin-top:6px;font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer;background:#f8fafd;background-size:cover;background-position:center}
+.locline{display:flex;gap:8px;align-items:center;font-size:12.5px;font-weight:600;margin-top:6px}
+.locline i{width:10px;height:10px;border-radius:50%;background:#1f6fd1;box-shadow:0 0 0 4px rgba(31,111,209,.18)}
+.timeline{display:grid;gap:8px;margin-top:8px}
+.timeline div{display:flex;gap:10px;align-items:center;font-size:12.5px;font-weight:600;color:#9aa6b6}
+.timeline div i{width:14px;height:14px;border-radius:50%;border:2px solid #cfd8e4}
+.timeline div.done{color:var(--ink)}.timeline div.done i{background:var(--ok);border-color:var(--ok)}
+/* ---- VR visit ---- */
+.vrinfo{margin-top:12px}
+.vrinfo b{font-size:15px;font-weight:800}
+.vrinfo p{font-size:13px;line-height:1.5;color:#33445c;margin-top:4px}
+.vrchips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.vrchips button{padding:8px 12px;border-radius:12px;font-size:12px;font-weight:700;background:var(--card);box-shadow:var(--shadow);color:var(--muted);display:flex;gap:6px;align-items:center}
+.vrchips button.seen{color:#0b6b45}.vrchips button.seen::before{content:"✓";font-weight:900}
+.vrchips button.on{background:#0f1b2d;color:#fff}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+<main id="main">
+
+<!-- ===================== HOME ===================== -->
+<section class="view" id="v-home">
+  <div class="topbar">
+    <div class="brand"><div class="logo">IM</div><div><small>Prototype · alpha</small><b>Immerse Malaysia</b></div></div>
+    <a href="#me" class="avatar" style="text-decoration:none">AR</a>
+  </div>
+  <div class="places" id="places"><button class="on">Melaka</button><button data-soon>George Town</button><button data-soon>Kuala Lumpur</button><button data-soon>Langkawi</button></div>
+  <div class="hero">
+    <div class="herotxt"><span class="chip" style="background:rgba(255,255,255,.2);color:#fff">UNESCO World Heritage City</span><h1>Melaka</h1><p>Hi, Aisyah! Everything you need to explore, learn, stay clean, shop and stay safe in Melaka.</p></div>
+    <svg class="heroart" viewBox="0 0 200 120"><rect x="20" y="52" width="80" height="48" fill="#a63a2b"/><path d="M14 54 L60 30 L106 54Z" fill="#7a2a1f"/><rect x="118" y="30" width="22" height="70" fill="#8e2f22"/><path d="M114 32 L129 14 L144 32Z" fill="#5a2a20"/><circle cx="129" cy="48" r="7" fill="#f4efe6"/><rect x="34" y="66" width="10" height="14" fill="#f4efe6"/><rect x="54" y="66" width="10" height="14" fill="#f4efe6"/><rect x="74" y="66" width="10" height="14" fill="#f4efe6"/><path d="M0 100 H200 V120 H0Z" fill="#c98b5a"/></svg>
+  </div>
+  <div class="status">
+    <a href="#clean"><small>Air quality</small><b><i style="background:#43a047"></i>API 42</b><span>Good</span></a>
+    <a href="#clean"><small>Cleanliness</small><b><i style="background:#17a589"></i>4.1★</b><span>Old Town</span></a>
+    <a href="#safety"><small>Flood</small><b><i style="background:#fdd835"></i>Alert</b><span>Melaka River</span></a>
+  </div>
+  <div class="section-title"><h3>5 ways to experience Melaka</h3><span>phone · web · headset</span></div>
+  <div class="hub">
+    <a class="tile" href="#explore" style="--c:#c0392b;--l:#fde9e7"><span class="ti">1</span><div class="tic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 21h18M5 21V10l7-5 7 5v11"/><path d="M9 21v-6h6v6"/></svg></div><b>Explore</b><small>AR heritage trail · time-travel</small></a>
+    <a class="tile" href="#learn" style="--c:#2e86c1;--l:#e4f1fb"><span class="ti">2</span><div class="tic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5z"/><path d="M7 11v5c3 2 7 2 10 0v-5"/></svg></div><b>Learn</b><small>History in 3D/AR · VR visit</small></a>
+    <a class="tile" href="#clean" style="--c:#17a589;--l:#e0f5f0"><span class="ti">3</span><div class="tic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c3 4 6 7 6 11a6 6 0 0 1-12 0c0-4 3-7 6-11z"/><path d="M9 14l2 2 4-4"/></svg></div><b>Clean &amp; Health</b><small>Toilets · food · air · reports</small></a>
+    <a class="tile" href="#shop" style="--c:#8e44ad;--l:#f2e8f8"><span class="ti">4</span><div class="tic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 8h14l-1 12H6z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg></div><b>Shop Local</b><small>Best of Melaka in 3D/AR</small></a>
+    <a class="tile wide" href="#safety" style="--c:#d35400;--l:#fdeee2"><span class="ti">5</span><div class="tic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 16c2 0 2-1.5 4-1.5S8 16 10 16s2-1.5 4-1.5 2 1.5 4 1.5 2-1.5 4-1.5"/><path d="M2 20c2 0 2-1.5 4-1.5S8 20 10 20s2-1.5 4-1.5 2 1.5 4 1.5 2-1.5 4-1.5"/><path d="M12 3l4 6H8z"/></svg></div><div><b>Safety</b><small>Flood &amp; disaster alerts · AR water height · VR drill</small></div></a>
+  </div>
+  <div class="card infoline"><span class="chip green">Offline ready</span><span>Melaka pack downloaded · works on phone, browser or VR headset.</span></div>
+  <div class="spacer"></div>
+</section>
+
+<!-- ===================== 1 EXPLORE ===================== -->
+<section class="view" id="v-explore">
+  <div class="backbar">
+    <a class="iconbtn" href="#home" aria-label="Back"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <div><h2>Explore Melaka</h2><p>Feature 1 · AR heritage trail</p></div>
+  </div>
+  <div class="card" style="padding:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="font-size:13.5px">Heritage trail</b><span class="chip" style="background:#fde9e7;color:#9b2c20" id="stampChip">2 of 5 stamps</span></div>
+    <svg id="trailMap" viewBox="0 0 340 150" style="width:100%;display:block;border-radius:12px;background:#eef5e9"></svg>
+  </div>
+  <div class="section-title"><h3>A Famosa · Porta de Santiago</h3><span class="chip green">You are here · 40 m</span></div>
+  <div class="seg" id="eraSeg"><button data-era="1512" class="on">1512 · Portuguese fort</button><button data-era="today">Today</button></div>
+  <div class="mvwrap" style="margin-top:10px">
+    <model-viewer id="mvFort" camera-controls touch-action="pan-y" auto-rotate rotation-per-second="14deg" shadow-intensity="1" exposure="1.05" environment-image="neutral" interaction-prompt="none" camera-orbit="30deg 68deg 105%" ar ar-modes="webxr scene-viewer quick-look" alt="A Famosa fortress model"></model-viewer>
+    <div class="hint">Time-Travel Lens · drag to rotate</div>
+  </div>
+  <p class="eranote" id="eraNote"></p>
+  <div class="card" style="margin-top:10px">
+    <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:13.5px">Audio guide</b><div class="langs" id="langs"><button data-l="en" class="on">English</button></div></div>
+    <div class="player"><button class="play" id="playBtn" aria-label="Play audio guide"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5l12 7-12 7z"/></svg></button><div style="flex:1"><div class="bar"><i id="audioBar" style="width:0%"></i></div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:4px;font-weight:600"><span id="audioTime">0:00</span><span>0:20</span></div></div></div>
+    <p class="transcript" id="transcript"></p>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
+    <button class="btn primary" onclick="go('ar-fort')">View in AR on site</button>
+    <button class="btn soft" id="stampBtn">Collect stamp</button>
+  </div>
+  <div class="card infoline" style="margin-top:10px"><span class="chip">Step-free route</span><span>Next stop: Stadthuys · 350 m · avoids stairs</span></div>
+  <div class="spacer"></div>
+</section>
+
+<!-- ===================== 2 LEARN ===================== -->
+<section class="view" id="v-learn">
+  <div class="topbar">
+    <div class="brand"><a class="iconbtn" href="#home" aria-label="Home"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a><div><small>Feature 2 · Melaka</small><b>Learn</b></div></div>
+    <a href="#group" class="chip dark" style="text-decoration:none;padding:7px 11px">Group mode</a>
+  </div>
+  <div class="hello"><h1>The story of Melaka</h1><p>Learn the history and culture of this place in 3D, AR and VR.</p></div>
+  <div class="join">
+    <h4>On a school trip or tour?</h4>
+    <p>Enter the code from your teacher or tour guide.</p>
+    <form id="joinForm" autocomplete="off">
+      <input id="joinCode" placeholder="e.g. MLK-4821" maxlength="8" aria-label="Group code">
+      <button class="btn" type="submit">Join</button>
+    </form>
+    <div class="err" id="joinErr">Code not found. Try <b>MLK-4821</b> (demo group).</div>
+    <div class="joined" id="joined">You joined <b>Class 4A · Melaka heritage trip</b> with Ms Farah. Your teacher can now guide your screen.</div>
+  </div>
+  <div class="section-title"><h3>Stories in 3D &amp; AR</h3><span>3 lessons · offline ready</span></div>
+  <div class="lesson-list" id="lessonList"></div>
+  <div class="section-title"><h3>Virtual visit</h3><span>VR · WebXR</span></div>
+  <button class="labcard" onclick="go('vr')">
+    <div class="thumb"><svg viewBox="0 0 64 64" fill="none"><rect x="8" y="22" width="48" height="26" rx="10" stroke="#fff" stroke-width="3"/><circle cx="22" cy="35" r="6" fill="#9ff0b8"/><circle cx="42" cy="35" r="6" fill="#9ff0b8"/><path d="M28 48l4-6 4 6" stroke="#fff" stroke-width="3" stroke-linejoin="round"/></svg></div>
+    <div><span class="chip amber">VR · 360° walk-around</span><h4>Dutch Square (Red Square)</h4><p>Stand in the square, look around and tap each building to learn its story.</p></div>
+  </button>
+  <div class="spacer"></div>
+</section>
+
+<!-- ===================== LESSON ===================== -->
+<section class="view" id="v-lesson">
+  <div class="backbar">
+    <a class="iconbtn" href="#learn" aria-label="Back"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <div><h2 id="lTitle">Lesson</h2><p id="lSub"></p></div>
+  </div>
+  <div class="lessonhead" id="lChips"></div>
+  <div class="mvwrap" id="mvwrap">
+    <model-viewer id="mv" camera-controls touch-action="pan-y" auto-rotate auto-rotate-delay="1500" rotation-per-second="16deg"
+      shadow-intensity="1" exposure="1.05" environment-image="neutral" interaction-prompt="none"
+      ar ar-modes="webxr scene-viewer quick-look" ar-scale="auto" alt="Interactive 3D model"></model-viewer>
+    <div class="hint"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="4"/></svg>Drag to rotate · pinch to zoom</div>
+  </div>
+  <div class="mvtools">
+    <button class="btn primary" id="arBtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M12 22V12M21 7l-9 5-9-5"/></svg>View in AR</button>
+    <button class="btn ghost" id="lblBtn">Labels: on</button>
+    <button class="btn ghost" id="resetBtn" aria-label="Reset view"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg></button>
+  </div>
+  <div class="section-title"><h3>Key facts</h3><span id="lTime"></span></div>
+  <div class="facts" id="lFacts"></div>
+  <div style="display:grid;gap:10px;margin-top:16px">
+    <button class="btn primary block" id="quizBtn">Take the quiz · 3 questions</button>
+    <button class="btn soft block" onclick="go('explore')">See it on the heritage trail</button>
+  </div>
+  <div class="spacer"></div>
+</section>
+
+<!-- ===================== VR VISIT ===================== -->
+<section class="view" id="v-vr">
+  <div class="backbar">
+    <a class="iconbtn" href="#learn" aria-label="Back"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <div><h2>Virtual Visit</h2><p>Dutch Square, Melaka · VR</p></div>
+  </div>
+  <div class="labscene" id="labscene">
+    <a-scene embedded vr-mode-ui="enabled: true" renderer="antialias: true; colorManagement: true" cursor="rayOrigin: mouse" raycaster="objects: .clickable" background="color: #9fd0f0" device-orientation-permission-ui="enabled: false" loading-screen="enabled: false">
+      <a-entity light="type: ambient; intensity: 0.8"></a-entity>
+      <a-entity light="type: directional; intensity: 0.85" position="2 4 3"></a-entity>
+      <a-plane rotation="-90 0 0" width="40" height="40" color="#b9ad9f"></a-plane>
+      <a-circle rotation="-90 0 0" radius="3.2" position="0 0.01 -6" color="#c9b9a6"></a-circle>
+      <!-- Stadthuys -->
+      <a-entity id="b-stadthuys" class="clickable" position="-5 0 -9">
+        <a-box class="clickable" width="6" height="3" depth="2" position="0 1.5 0" color="#a63a2b"></a-box>
+        <a-box width="6.3" height="0.25" depth="2.3" position="0 3.1 0" color="#5a2a20"></a-box>
+        <a-box width="1.6" height="4.2" depth="1.6" position="2.3 2.1 0.3" color="#a63a2b"></a-box>
+        <a-cone radius-bottom="1.2" radius-top="0.05" height="1.2" segments-radial="4" position="2.3 4.8 0.3" rotation="0 45 0" color="#5a2a20"></a-cone>
+        <a-box width="0.6" height="1.2" depth="0.05" position="-1.5 0.6 1.03" color="#f4efe6"></a-box><a-box width="0.6" height="1.2" depth="0.05" position="0 0.6 1.03" color="#f4efe6"></a-box>
+        <a-box width="0.5" height="0.7" depth="0.05" position="-2.2 2.1 1.03" color="#f4efe6"></a-box><a-box width="0.5" height="0.7" depth="0.05" position="-0.8 2.1 1.03" color="#f4efe6"></a-box><a-box width="0.5" height="0.7" depth="0.05" position="0.6 2.1 1.03" color="#f4efe6"></a-box>
+      </a-entity>
+      <!-- Christ Church -->
+      <a-entity id="b-church" class="clickable" position="4.5 0 -10">
+        <a-box class="clickable" width="4" height="4" depth="3" position="0 2 0" color="#b0412f"></a-box>
+        <a-box width="4.3" height="0.3" depth="3.3" position="0 4.1 0" color="#5a2a20"></a-box>
+        <a-box width="1.2" height="1.4" depth="1.2" position="0 4.9 0.6" color="#b0412f"></a-box>
+        <a-box width="0.15" height="0.9" depth="0.15" position="0 6.0 0.6" color="#f4efe6"></a-box><a-box width="0.6" height="0.15" depth="0.15" position="0 6.15 0.6" color="#f4efe6"></a-box>
+        <a-box width="1.2" height="1.8" depth="0.05" position="0 0.9 1.53" color="#5b3a22"></a-box>
+      </a-entity>
+      <!-- Clock tower -->
+      <a-entity id="b-clock" class="clickable" position="1.8 0 -6.5">
+        <a-box class="clickable" width="1.1" height="4.5" depth="1.1" position="0 2.25 0" color="#8e2f22"></a-box>
+        <a-cone radius-bottom="0.85" radius-top="0.05" height="1" segments-radial="4" rotation="0 45 0" position="0 5 0" color="#5a2a20"></a-cone>
+        <a-circle radius="0.35" position="0 3.6 0.56" color="#f4efe6"></a-circle>
+      </a-entity>
+      <!-- Fountain -->
+      <a-entity id="b-fountain" class="clickable" position="-1.6 0 -5.5">
+        <a-cylinder class="clickable" radius="1.2" height="0.5" position="0 0.25 0" color="#e9e3d6"></a-cylinder>
+        <a-cylinder radius="1.05" height="0.05" position="0 0.5 0" color="#7cc3e8"></a-cylinder>
+        <a-cylinder radius="0.2" height="1.4" position="0 1.0 0" color="#e9e3d6"></a-cylinder>
+        <a-cylinder radius="0.5" height="0.12" position="0 1.6 0" color="#e9e3d6"></a-cylinder>
+      </a-entity>
+      <a-entity position="0 1.6 0" rotation="-4 0 0">
+        <a-entity camera look-controls="pointerLockEnabled: false; magicWindowTrackingEnabled: false" wasd-controls="enabled: false"></a-entity>
+      </a-entity>
+    </a-scene>
+    <div class="hint" style="z-index:5">Drag to look around · tap a building</div>
+  </div>
+  <div class="card vrinfo" id="vrInfo"><b id="vrTitle">Tap a building</b><p id="vrText">Four landmarks stand around Dutch Square. Tap each one in the scene or below to learn its story.</p></div>
+  <div class="vrchips" id="vrChips"></div>
+  <div class="card infoline" style="margin-top:10px"><span class="chip green">Comfort</span><span>Seated view · no walking movement · works with a headset</span></div>
+  <div class="spacer"></div>
+</section>
+
+<!-- ===================== QUIZ ===================== -->
+<section class="view" id="v-quiz">
+  <div class="backbar">
+    <a class="iconbtn" id="quizBack" href="#learn" aria-label="Back"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg></a>
+    <div><h2 id="qTitle">Quiz</h2><p id="qSub"></p></div>
+  </div>
+  <div id="quizBody"></div>
+</section>
+
+<!-- ===================== GROUP (teacher / guide) ===================== -->
+<section class="view" id="v-group">
+  <div class="topbar">
+    <div class="brand"><a class="iconbtn" href="#learn" aria-label="Back"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a><div><small>Teacher / guide mode</small><b>Group Trip</b></div></div>
+    <span class="chip dark">Ms Farah</span>
+  </div>
+  <div class="session">
+    <div class="row"><span class="live"><i></i>LIVE</span><span style="font-size:12px;opacity:.8">Class 4A · Melaka trip · 10:05 am</span></div>
+    <div style="font-size:12px;opacity:.75;margin-top:12px">Group code</div>
+    <div class="row"><div class="code">MLK-4821</div><button class="btn" id="copyCode">Copy</button></div>
+    <div class="row" style="font-size:12.5px;margin-top:4px"><span><b>28</b> of 32 students joined</span><span style="opacity:.75">4 waiting</span></div>
+    <div class="joinbar"><i style="width:87.5%"></i></div>
+  </div>
+  <div class="section-title"><h3>Guide the group</h3><span>applies to all devices</span></div>
+  <div class="card">
+    <div style="font-size:12.5px;font-weight:700;color:var(--muted);margin-bottom:8px">Push a story to every student screen</div>
+    <div style="display:flex;gap:8px">
+      <select id="pushSel"><option>Stadthuys &amp; Dutch Melaka (3D/AR)</option><option>Flor de la Mar ship (3D/AR)</option><option>Melaka Sultanate Palace (3D/AR)</option><option>Dutch Square virtual visit (VR)</option></select>
+      <button class="btn primary" id="pushBtn" style="flex-shrink:0">Send</button>
+    </div>
+  </div>
+  <div class="ctrlgrid" style="margin-top:10px">
+    <button class="ctrl" id="lockBtn"><div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div><b>Lock screens</b><small id="lockTxt">Students can explore freely</small></button>
+    <button class="ctrl" id="quizStart"><div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><b>Start group quiz</b><small>3 questions · 2 min</small></button>
+  </div>
+  <div class="section-title"><h3>Live quiz results</h3><span>Stadthuys &amp; Dutch Melaka</span></div>
+  <div class="card qbars" id="qbars"></div>
+  <div class="card" style="margin-top:10px;background:#fff8e8;box-shadow:none;border:1.5px solid #ffe0a3;font-size:13px;line-height:1.45"><b>Concept to revisit:</b> 11 students chose 1511 for the Dutch takeover. Stop at the Stadthuys and replay the timeline before moving on.</div>
+  <div class="section-title"><h3>Students</h3><span>28 online</span></div>
+  <div class="students" id="studentList"></div>
+  <p class="sample">Prototype · sample group data for demonstration</p>
+  <div class="spacer"></div>
+</section>
+
+<!-- ===================== 3 CLEAN & HEALTH ===================== -->
+<section class="view" id="v-clean">
+  <div class="backbar">
+    <a class="iconbtn" href="#home" aria-label="Back"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <div><h2>Clean &amp; Health</h2><p>Feature 3 · Old Town, Melaka</p></div>
+  </div>
+  <div class="cleanhero">
+    <div class="ring" id="cleanRing" style="width:96px;height:96px;margin:0;background:conic-gradient(#17a589 82%,rgba(255,255,255,.25) 0)"><div style="width:76px;height:76px;background:#0f6f5c;color:#fff;font-size:22px">4.1</div></div>
+    <div><small>Area cleanliness</small><h3>Clean · rated 4.1 of 5</h3><p>From 326 visitor reviews and council inspections this month</p></div>
+  </div>
+  <div class="hstats">
+    <div><small>Air quality</small><b><i style="background:#43a047"></i>API 42</b><span>Good · 0–50</span></div>
+    <div><small>Crowd now</small><b><i style="background:#fb8c00"></i>Busy</b><span>Quieter after 5 pm</span></div>
+    <div><small>Heat</small><b><i style="background:#fdd835"></i>33°C</b><span>Drink water</span></div>
+  </div>
+  <div class="seg" id="cleanSeg" style="margin-top:12px"><button data-c="toilet" class="on">Toilets</button><button data-c="food">Food stalls</button><button data-c="clinic">Clinics</button><button data-c="report">Report</button></div>
+  <div id="cleanList" class="placelist" style="margin-top:10px"></div>
+  <div id="reportBox" style="display:none;margin-top:10px">
+    <div class="card">
+      <b style="font-size:13.5px">Report a cleanliness problem</b>
+      <p style="font-size:12px;color:var(--muted);margin-top:2px">Your report goes to the local council and helps other visitors.</p>
+      <div class="optlabel" style="margin-top:12px">What did you find?</div>
+      <div class="optrow" id="repCat" data-sel><button class="on">Dirty toilet</button><button>Litter</button><button>Blocked drain</button><button>Bad smell</button></div>
+      <div class="optlabel" style="margin-top:12px">Photo</div>
+      <label class="photo" id="photoLbl"><input type="file" accept="image/*" id="photoIn" hidden><span id="photoTxt">Tap to add a photo</span></label>
+      <div class="optlabel" style="margin-top:12px">Location</div>
+      <div class="locline"><i></i>Public toilet, Kota Road (detected from GPS)</div>
+      <button class="btn primary block" id="sendRep" style="margin-top:12px">Send report</button>
+      <p class="fitnote" style="margin-top:10px">Faces and car plates in photos are blurred automatically before the report is sent.</p>
+    </div>
+    <div class="card" id="repStatus" style="display:none;margin-top:10px"></div>
+  </div>
+  <p class="sample">Prototype · sample ratings and readings · air quality from DOE APIMS in the full app</p>
+  <div class="spacer"></div>
+</section>
+
+<!-- ===================== 4 SHOP LOCAL ===================== -->
+<section class="view" id="v-shop">
+  <div class="backbar">
+    <a class="iconbtn" href="#home" aria-label="Back"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <div><h2>Shop Local</h2><p>Feature 4 · Best of Melaka</p></div>
+  </div>
+  <div class="seg" id="prodSeg"><button data-p="kasut" class="on">Beaded Slippers</button><button data-p="tingkat">Tiffin Carrier</button><button data-p="gula">Palm Sugar</button></div>
+  <div class="mvwrap" style="margin-top:10px;background:radial-gradient(circle at 50% 35%,#fff 0%,#f1e9f7 75%)">
+    <model-viewer id="mvShop" camera-controls touch-action="pan-y" auto-rotate rotation-per-second="20deg" shadow-intensity="1.1" exposure="1.1" environment-image="neutral" interaction-prompt="none" ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed" alt="Product 3D model"></model-viewer>
+    <div class="hint">3D model · true size in AR</div>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px"><div><span class="chip purple" id="prodCat">Peranakan craft</span><h3 style="font-size:18px;font-weight:800;margin-top:6px" id="prodName">Nyonya Beaded Slippers</h3><p style="font-size:12.5px;color:var(--muted);margin-top:2px" id="prodSeller"></p></div><b style="font-size:20px;white-space:nowrap" id="prodPrice">RM 380</b></div>
+    <p style="font-size:13px;line-height:1.5;color:#33445c;margin-top:10px" id="prodStory"></p>
+    <div id="prodOpts" style="margin-top:8px"></div>
+    <p class="fitnote" id="fitNote"></p>
+  </div>
+  <div style="display:grid;gap:10px;margin-top:12px">
+    <button class="btn primary block" id="prodAR">View in AR (true size)</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><button class="btn ghost" id="findShop">Find the shop</button><button class="btn soft" id="shareAR">Share AR link</button></div>
+  </div>
+  <div class="card infoline" style="margin-top:10px"><span class="chip amber">Voucher</span><span>RM5 off at Jonker Street shops from your heritage-trail stamps</span></div>
+  <div class="section-title"><h3>Seller view</h3><span>for the SME owner</span></div>
+  <div class="card">
+    <div class="sellerstats"><div><b>1,284</b><small>3D views</small></div><div><b>312</b><small>AR views</small></div><div><b>96</b><small>Shop visits</small></div></div>
+    <button class="btn soft block" style="margin-top:12px" id="capBtn">Create a 3D model from a phone video</button>
+    <div class="pipeline" id="pipeline">
+      <div class="pstep"><i></i>Video uploaded (32 s)</div>
+      <div class="pstep"><i></i>Building 3D model on cloud GPU</div>
+      <div class="pstep"><i></i>Optimised for Android (GLB) and iPhone (USDZ)</div>
+      <div class="pstep"><i></i>AR link and QR code ready to share</div>
+    </div>
+    <p class="sample" style="margin-top:10px">Prototype · sample seller data</p>
+  </div>
+  <div class="spacer"></div>
+</section>
+
+<!-- ===================== 5 SAFETY ===================== -->
+<section class="view" id="v-safety">
+  <div class="backbar">
+    <a class="iconbtn" href="#home" aria-label="Back"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <div><h2>Safety</h2><p>Feature 5 · flood &amp; disaster alerts</p></div>
+  </div>
+  <div class="floodalert">
+    <div style="display:flex;justify-content:space-between;align-items:center"><span class="lvl">FLOOD ALERT</span><span style="font-size:11.5px;opacity:.85">Updated 10:42</span></div>
+    <h3>Melaka River station</h3>
+    <div style="display:flex;align-items:baseline;gap:8px"><b class="big">5.9 m</b><span style="font-size:12.5px;font-weight:700">▲ rising 0.2 m/hour</span></div>
+    <div class="gauge"><i style="flex:5.5;background:#43a047"></i><i style="flex:1;background:#fdd835"></i><i style="flex:1;background:#fb8c00"></i><i style="flex:1.5;background:#e53935"></i><span class="mark" style="left:65.6%"></span></div>
+    <div class="glabels"><span>Normal</span><span>Alert 5.5</span><span>Warning 6.5</span><span>Danger 7.5</span></div>
+    <p style="font-size:12px;font-weight:700;margin-top:10px;background:rgba(255,255,255,.16);border-radius:10px;padding:8px 10px">Safe to visit with care: avoid riverside paths this evening.</p>
+    <p style="font-size:11px;opacity:.8;margin-top:6px">Source: Department of Irrigation and Drainage &amp; Malaysian Meteorological Department · sample data in this prototype</p>
+  </div>
+  <div class="seg" id="floodSeg" style="margin-top:12px"><button data-t="map" class="on">Live map</button><button data-t="ar">AR water view</button><button data-t="drill">VR drill</button></div>
+  <div class="fpanel" id="fp-map">
+    <div class="card" style="padding:10px"><svg id="floodMap" viewBox="0 0 340 190" style="width:100%;display:block;border-radius:12px"></svg></div>
+    <div class="card" style="margin-top:10px;display:flex;gap:12px;align-items:center">
+      <div class="tic" style="--c:#16a06a;--l:#e3f6ee;width:42px;height:42px;flex-shrink:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M3 21h18M5 21V9l7-5 7 5v12"/><path d="M10 21v-5h4v5"/></svg></div>
+      <div style="flex:1"><b style="font-size:13.5px">Nearest relief centre</b><p style="font-size:12px;color:var(--muted)">Community Hall (sample) · 1.2 km · 15 min walk via higher ground</p></div>
+    </div>
+    <button class="btn primary block" style="margin-top:10px" onclick="go('ar-route')">AR directions to relief centre</button>
+    <div class="section-title"><h3>Traveller's emergency checklist</h3><span id="chkCount">0 of 5 ready</span></div>
+    <div class="card" id="checklist" style="padding:4px 14px"></div>
+  </div>
+  <div class="fpanel" id="fp-ar" style="display:none">
+    <div class="waterscene" id="waterScene"></div>
+    <div class="card" style="margin-top:10px">
+      <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800"><span>Water height</span><span id="wVal">30 cm</span></div>
+      <input type="range" id="wSlider" min="0" max="150" step="5" value="30" style="width:100%;margin-top:8px;accent-color:#d35400">
+      <p class="wmsg" id="wMsg"></p>
+    </div>
+    <p class="sample">Preview of the AR overlay that is drawn on the real street through the camera</p>
+  </div>
+  <div class="fpanel" id="fp-drill" style="display:none">
+    <div class="card" id="drillBox"></div>
+    <p class="sample">Full immersive version runs in a VR headset browser (WebXR)</p>
+  </div>
+  <div class="spacer"></div>
+</section>
+
+<!-- ===================== ME ===================== -->
+<section class="view" id="v-me">
+  <div class="topbar"><div class="brand"><div class="logo">IM</div><div><small>Immerse Malaysia</small><b>My trip</b></div></div></div>
+  <div class="card profile"><div class="avatar">AR</div><div><h2>Aisyah Rahman</h2><p>Visiting Melaka · 2-day trip</p></div></div>
+  <div class="statsrow">
+    <div class="stat"><small>XP</small><b id="xpOut">0</b></div>
+    <div class="stat"><small>Stamps</small><b id="stOut">2/5</b></div>
+    <div class="stat"><small>Quizzes</small><b id="qzOut">0/3</b></div>
+  </div>
+  <div class="section-title"><h3>Badges</h3><span id="bdgCount"></span></div>
+  <div class="card badges" id="badges"></div>
+  <div class="section-title"><h3>Comfort &amp; access</h3><span>saved on this device</span></div>
+  <div class="card" style="padding:4px 16px">
+    <div class="setting"><div>Reduce motion<small>Stops auto-rotating models (helps with dizziness)</small></div><button class="switch" id="swMotion" aria-label="Reduce motion"></button></div>
+    <div class="setting"><div>Show labels by default<small>Name tags on every 3D model</small></div><button class="switch on" id="swLabels" aria-label="Show labels"></button></div>
+    <div class="setting"><div>Offline pack: Melaka<small>Trail, 3D stories, maps · 3.1 MB</small></div><span class="chip green">Ready</span></div>
+  </div>
+  <button class="btn ghost block" style="margin-top:14px" id="resetProgress">Reset my progress</button>
+  <div class="spacer"></div>
+</section>
+
+</main>
+
+<!-- AR preview overlay -->
+<div class="arview" id="arview">
+  <div class="camfeed"></div>
+  <model-viewer id="mvAR" max-camera-orbit="auto auto 600%" camera-orbit="25deg 62deg 150%" interaction-prompt="none" shadow-intensity="1.4" shadow-softness="0.6" exposure="1.1" environment-image="neutral" camera-controls disable-zoom touch-action="pan-y"></model-viewer>
+  <div class="reticle"></div>
+  <svg class="facesil" viewBox="0 0 230 300"><path d="M115 20c-48 0-78 36-78 92 0 40 14 80 40 104 12 11 24 17 38 17s26-6 38-17c26-24 40-64 40-104 0-56-30-92-78-92z" fill="#d9a77c"/><path d="M40 300c6-46 38-66 75-66s69 20 75 66z" fill="#1f6fd1"/><ellipse cx="85" cy="122" rx="8" ry="5" fill="#3a2a22"/><ellipse cx="145" cy="122" rx="8" ry="5" fill="#3a2a22"/><path d="M98 178c10 8 24 8 34 0" stroke="#7a4a32" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M115 130v28l-8 6" stroke="#b9805a" stroke-width="3" fill="none"/></svg>
+  <div class="navarrows"><div class="navpin">Relief centre · Community Hall · 1.2 km</div><i></i><i></i><i></i></div>
+  <div class="artop">
+    <button class="iconbtn" id="arClose" aria-label="Close AR"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    <h3 id="arTitle">AR</h3>
+    <span class="chip">AR preview</span>
+  </div>
+  <div class="arnote" id="arNote">This browser cannot open the camera, so this is a preview of the AR screen. On an AR-capable phone, “View in AR” places the model on your real desk.</div>
+  <div class="arbottom">
+    <div class="arpill" id="arPill"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 7V4h3M20 7V4h-3M4 17v3h3M20 17v3h-3"/></svg><span id="arPillTxt">Move your phone slowly to find a flat surface</span></div>
+    <div class="arbtns">
+      <button class="btn" id="arLabels">Labels</button>
+      <button class="btn primary" id="arPlace" disabled>Place model</button>
+      <button class="btn" id="arReset">Reset</button>
+    </div>
+  </div>
+</div>
+
+
+<nav class="tabs" id="tabs">
+  <a href="#home" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
+  <a href="#explore" data-tab="explore"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>Explore</a>
+  <a href="#learn" data-tab="learn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5z"/><path d="M7 11v5c3 2 7 2 10 0v-5"/></svg>Learn</a>
+  <a href="#safety" data-tab="safety"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v5c0 5-4 8-8 9-4-1-8-4-8-9V7z"/></svg>Safety</a>
+  <a href="#me" data-tab="me"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Me</a>
+</nav>
+<div class="toast" id="toast"></div>
+</div>
+<script>
+
+/* ================= data ================= */
+const ICONS = {
+  stadthuys:'<svg viewBox="0 0 64 64"><rect x="8" y="28" width="34" height="24" fill="#a63a2b"/><path d="M5 30 L25 16 L45 30Z" fill="#5a2a20"/><rect x="46" y="18" width="10" height="34" fill="#8e2f22"/><path d="M44 19 L51 10 L58 19Z" fill="#5a2a20"/><circle cx="51" cy="26" r="3" fill="#f4efe6"/><rect x="14" y="36" width="5" height="7" fill="#f4efe6"/><rect x="23" y="36" width="5" height="7" fill="#f4efe6"/><rect x="32" y="36" width="5" height="7" fill="#f4efe6"/></svg>',
+  ship:'<svg viewBox="0 0 64 64"><path d="M8 40h48l-6 12H14z" fill="#5c3a1e"/><line x1="24" y1="12" x2="24" y2="40" stroke="#3b2414" stroke-width="2"/><line x1="40" y1="8" x2="40" y2="40" stroke="#3b2414" stroke-width="2"/><rect x="16" y="16" width="16" height="16" rx="2" fill="#f3ead7"/><rect x="32" y="12" width="16" height="20" rx="2" fill="#f3ead7"/><path d="M24 19v10M20 24h8M40 16v12M36 22h8" stroke="#c0392b" stroke-width="2"/><path d="M4 54c6 0 6-3 12-3s6 3 12 3 6-3 12-3 6 3 12 3 6-3 8-3" stroke="#4a90c2" stroke-width="2.5" fill="none"/></svg>',
+  palace:'<svg viewBox="0 0 64 64"><path d="M6 34 L32 14 L58 34Z" fill="#2f2a26"/><path d="M18 24 L32 10 L46 24Z" fill="#3b3430"/><rect x="10" y="34" width="44" height="12" fill="#8a5a34"/><rect x="14" y="37" width="5" height="6" fill="#e8c98f"/><rect x="24" y="37" width="5" height="6" fill="#e8c98f"/><rect x="35" y="37" width="5" height="6" fill="#e8c98f"/><rect x="45" y="37" width="5" height="6" fill="#e8c98f"/><path d="M12 46v10M22 46v10M32 46v10M42 46v10M52 46v10" stroke="#3b2414" stroke-width="2.5"/></svg>'
+};
+const LESSONS = {
+  stadthuys:{title:'Stadthuys & Dutch Melaka',subject:'History · 1641–1824',time:'7 min',chips:[['History',''],['3D','green'],['AR','purple']],
+    model:'models/stadthuys.glb',orbit:'35deg 68deg 128%',
+    hotspots:[['Stadthuys (c. 1650)','-1.25 0.3 0.12'],['Clock tower (1886)','1.45 1.6 0.75','l'],['Entrance hall','0.95 0.45 0.36']],
+    facts:['The Dutch took Melaka from the Portuguese in 1641 and built the Stadthuys around 1650 as their administrative centre.','The red clock tower beside it was built in 1886 by Tan Jiak Kim in memory of his father, Tan Beng Swee.','Today the Stadthuys houses the History and Ethnography Museum.','Melaka and George Town were listed together as a UNESCO World Heritage Site in 2008.']},
+  ship:{title:'Flor de la Mar Ship',subject:'History · 1511',time:'6 min',chips:[['History',''],['3D','green'],['AR','purple']],
+    model:'models/ship.glb',orbit:'40deg 72deg 110%',
+    hotspots:[['Main mast','0.12 2.2 0'],['Stern castle','-1.05 0.8 0.3'],['Portuguese cross','0.81 1.05 0.05']],
+    facts:['The Maritime Museum in Melaka is a replica of the Portuguese ship Flor de la Mar.','The Portuguese captured Melaka in 1511. Later that year the Flor de la Mar sank in the Strait of Malacca, reportedly carrying treasure from Melaka.','Melaka’s position on the Strait of Malacca made it one of the busiest trading ports in Asia.']},
+  palace:{title:'Melaka Sultanate Palace',subject:'History · 15th century',time:'8 min',chips:[['History',''],['3D','green'],['AR','purple']],
+    model:'models/palace.glb',orbit:'30deg 70deg 105%',
+    hotspots:[['Layered roof','0 1.9 0'],['Raised on stilts','-1.4 0.25 0.45'],['Main stairs','0 0.3 0.95']],
+    facts:['Melaka was founded around 1400 by Parameswara and grew into a powerful Malay sultanate and trading port.','The palace museum is a wooden replica based on descriptions in the Malay Annals.','Traditional Malay palaces were raised on stilts, which protected them from floods and animals and let air flow underneath.']}
+};
+const QUIZ = {
+  stadthuys:[
+    ['Who built the Stadthuys?',['The Portuguese','The Dutch','The British','The Melaka Sultanate'],1,'The Dutch built it around 1650 after taking Melaka.'],
+    ['In which year did the Dutch take Melaka?',['1511','1641','1824','1957'],1,'The Dutch captured Melaka from the Portuguese in 1641.'],
+    ['Melaka became a UNESCO World Heritage Site in 2008 together with…',['Kuala Lumpur','Ipoh','George Town','Kota Bharu'],2,'Melaka and George Town were listed together in 2008.']],
+  ship:[
+    ['Which country did the Flor de la Mar belong to?',['Netherlands','Portugal','Britain','Spain'],1,'It was a Portuguese ship.'],
+    ['In which year did the Portuguese capture Melaka?',['1400','1511','1641','1786'],1,'The Portuguese captured Melaka in 1511.'],
+    ['Melaka became a busy port because it lies on…',['the Strait of Malacca','the South China Sea','the Andaman Sea','the Java Sea'],0,'Ships travelling between India and China passed through the Strait of Malacca.']],
+  palace:[
+    ['Who founded Melaka around 1400?',['Hang Tuah','Parameswara','Sultan Mansur Shah','Afonso de Albuquerque'],1,'Parameswara founded Melaka around 1400.'],
+    ['The palace replica is based on descriptions in…',['the Malay Annals','the Tale of Hang Tuah','a Portuguese map','a Dutch diary'],0,'The design follows descriptions in the Malay Annals.'],
+    ['Why were Malay palaces built on stilts?',['Only for decoration','To use less wood','Protection from floods and animals, and better air flow','To make them easier to move'],2,'Stilts kept the building dry and cool.']]
+};
+const BADGES = [
+  ['explorer','Trail Explorer','#fde9e7','<svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V10l7-5 7 5v11" fill="none" stroke="#c0392b" stroke-width="2"/><path d="M9 21v-6h6v6" fill="#f3b7ad"/></svg>'],
+  ['historian','Young Historian','#e4f1fb','<svg viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5z" fill="#2e86c1"/><path d="M7 11v5c3 2 7 2 10 0v-5" fill="none" stroke="#2e86c1" stroke-width="2"/></svg>'],
+  ['clean','Clean Champion','#e0f5f0','<svg viewBox="0 0 24 24"><path d="M12 3c3 4 6 7 6 11a6 6 0 0 1-12 0c0-4 3-7 6-11z" fill="#17a589"/><path d="M9 14l2 2 4-4" stroke="#fff" stroke-width="2" fill="none"/></svg>'],
+  ['safety','Flood Ready','#fdeee2','<svg viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 5-4 8-8 9-4-1-8-4-8-9V7z" fill="#d35400"/><path d="M8 12l3 3 5-5" stroke="#fff" stroke-width="2" fill="none"/></svg>']
+];
+const STUDENTS=[['Aisyah R.','In AR · Stadthuys','#16a06a'],['Wei Jie T.','Quiz done · 3/3','#1f6fd1'],['Kavitha S.','VR visit','#8e44ad'],['Harith Z.','Quiz done · 2/3','#1f6fd1'],['Mei Ling C.','In AR · Stadthuys','#16a06a'],['Arjun P.','Idle · 2 min','#d0a020'],['Nurul H.','Collecting stamp','#c0392b'],['Daniel L.','Quiz done · 3/3','#1f6fd1']];
+
+/* ================= storage ================= */
+const KEY='immerse-melaka-v1';
+let S={xp:0,best:{},reduce:false,labels:true,last:'stadthuys',stamps:2,check:[],report:false,drill:0};
+try{const raw=localStorage.getItem(KEY); if(raw) S=Object.assign(S,JSON.parse(raw));}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+const $=id=>document.getElementById(id);
+function toast(t){const el=$('toast');el.textContent=t;el.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>el.classList.remove('show'),2300);}
+function go(h){location.hash=h;}
+document.querySelectorAll('#places [data-soon]').forEach(b=>b.onclick=()=>toast(b.textContent+' pack coming soon · Melaka is ready now'));
+
+/* ================= shared 3D helpers ================= */
+function applyLabels(){ document.querySelectorAll('.mvwrap').forEach(w=>w.classList.toggle('nolabels',!S.labels)); if($('lblBtn')) $('lblBtn').textContent='Labels: '+(S.labels?'on':'off'); $('arview').classList.toggle('nolabels',!S.labels); }
+function setHotspots(el,list){
+  el.querySelectorAll('.hotspot').forEach(h=>h.remove());
+  list.forEach((h,i)=>{const b=document.createElement('button');b.className='hotspot';b.slot='hotspot-'+i;b.dataset.position=h[1];b.dataset.normal='0 1 0';b.dataset.visibilityAttribute='visible';if(h[2]==='l') b.classList.add('l');b.innerHTML=`<span class="hs">${h[0]}</span>`;el.appendChild(b);});
+}
+function motion(el){ if(S.reduce) el.removeAttribute('auto-rotate'); else el.setAttribute('auto-rotate',''); }
+
+/* ================= 1 Explore ================= */
+const TRAIL=[['A Famosa',70,92],['St. Paul’s Hill',118,62],['Stadthuys',178,98],['Christ Church',214,74],['Jonker Street',282,108]];
+function drawTrail(){
+  const st=S.stamps;
+  let s=`<path d="M0 128 C60 118 90 140 150 126 S250 112 340 132 L340 150 L0 150Z" fill="#a9d4f0"/><text x="300" y="145" font-size="8" fill="#3b7bb0" font-weight="700">Melaka River</text>`;
+  s+=`<path d="M20 20 L320 40 M40 70 L330 80 M150 0 L170 150" stroke="#fff" stroke-width="6" fill="none" opacity=".8"/>`;
+  s+=`<polyline points="${TRAIL.map(t=>t[1]+','+t[2]).join(' ')}" fill="none" stroke="#c0392b" stroke-width="2.5" stroke-dasharray="5 4"/>`;
+  TRAIL.forEach((t,i)=>{const done=i<st, here=i===0;
+    s+=`<circle cx="${t[1]}" cy="${t[2]}" r="${here?11:9}" fill="${done?'#c0392b':'#fff'}" stroke="#c0392b" stroke-width="2.5"/>`;
+    s+=`<text x="${t[1]}" y="${t[2]+3.5}" font-size="9" font-weight="800" text-anchor="middle" fill="${done?'#fff':'#c0392b'}">${i+1}</text>`;
+    s+=`<text x="${t[1]}" y="${t[2]-15}" font-size="8.5" font-weight="700" text-anchor="middle" fill="#3a2a22">${t[0]}</text>`;});
+  s+=`<circle cx="62" cy="104" r="5" fill="#1f6fd1" stroke="#fff" stroke-width="2"/>`;
+  $('trailMap').innerHTML=s; $('stampChip').textContent=st+' of 5 stamps';
+}
+const ERA={
+  '1512':{model:'models/fort-1512.glb',orbit:'30deg 68deg 105%',hs:[['Keep tower','-0.2 1.6 -0.2'],['Gate house','0 0.52 1.0'],['Bastion','1.2 0.8 0.9']],
+    note:'<b>1512 · Portuguese fort.</b> After capturing Melaka in 1511, the Portuguese built A Famosa with thick walls, round bastions and a tall keep tower overlooking the river mouth.'},
+  'today':{model:'models/fort-today.glb',orbit:'20deg 72deg 110%',hs:[['Porta de Santiago','0 1.36 0.1'],['VOC plaque (1670)','0 1.12 0.3']],
+    note:'<b>Today.</b> Most of the fort was demolished in the early 1800s. Only the Porta de Santiago gate survives, still showing the Dutch East India Company (VOC) coat of arms dated 1670.'}
+};
+const TRANS={
+  en:['en-GB','Welcome to A Famosa. The Portuguese built this fortress in 1511. Today, only the Porta de Santiago gate remains.']
+};
+let lang='en', audioT=null, audioP=0; const mvFort=$('mvFort');
+function setEra(e){const d=ERA[e]; document.querySelectorAll('#eraSeg button').forEach(b=>b.classList.toggle('on',b.dataset.era===e));
+  mvFort.setAttribute('src',d.model); mvFort.setAttribute('camera-orbit',d.orbit); mvFort.cameraOrbit=d.orbit; setHotspots(mvFort,d.hs); $('eraNote').innerHTML=d.note; motion(mvFort);}
+document.querySelectorAll('#eraSeg button').forEach(b=>b.onclick=()=>setEra(b.dataset.era));
+function setLang(l){lang=l; document.querySelectorAll('#langs button').forEach(b=>b.classList.toggle('on',b.dataset.l===l)); $('transcript').textContent=TRANS[l][1];}
+document.querySelectorAll('#langs button').forEach(b=>b.onclick=()=>{stopAudio();setLang(b.dataset.l);});
+function stopAudio(){clearInterval(audioT);audioT=null;audioP=0;$('audioBar').style.width='0%';$('audioTime').textContent='0:00';$('playBtn').innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5l12 7-12 7z"/></svg>';try{speechSynthesis.cancel();}catch(e){}}
+$('playBtn').onclick=()=>{ if(audioT){stopAudio();return;}
+  $('playBtn').innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>';
+  try{const u=new SpeechSynthesisUtterance(TRANS[lang][1]);u.lang=TRANS[lang][0];u.rate=.95;speechSynthesis.speak(u);}catch(e){}
+  audioT=setInterval(()=>{audioP+=1;$('audioBar').style.width=(audioP/20*100)+'%';$('audioTime').textContent='0:'+String(audioP).padStart(2,'0');if(audioP>=20)stopAudio();},1000);};
+$('stampBtn').onclick=()=>{ if(S.stamps<3){S.stamps=3;S.xp+=10;save();drawTrail();toast('Stamp collected · 3 of 5 · RM5 voucher for Shop Local');} else toast('Stamp already collected here'); };
+
+/* ================= 2 Learn ================= */
+function renderLearn(){
+  const L=$('lessonList'); L.innerHTML=''; const bg={stadthuys:'#fbe9e5',ship:'#e3f0f9',palace:'#f4ece2'};
+  for(const [id,l] of Object.entries(LESSONS)){
+    const best=S.best[id]||0; const pct=best?Math.round(best/3*100):(id===S.last?35:0);
+    const b=document.createElement('button'); b.className='lcard'; b.onclick=()=>go('lesson-'+id);
+    b.innerHTML=`<div class="thumb" style="background:${bg[id]}">${ICONS[id]}</div><div class="meta">${l.chips.map(c=>`<span class="chip ${c[1]}">${c[0]}</span>`).join(' ')}<h4>${l.title}</h4><p>${l.subject} · ${l.time} · ${best?`Quiz best ${best}/3`:(id===S.last?'In progress':'Not started')}</p><div class="bar"><i style="width:${pct}%"></i></div></div>`;
+    L.appendChild(b);
+  }
+}
+$('joinForm').addEventListener('submit',e=>{ e.preventDefault(); const v=$('joinCode').value.trim().toUpperCase().replace(/\s/g,'');
+  if(v==='MLK-4821'||v==='MLK4821'){$('joined').classList.add('show');$('joinErr').style.display='none';toast('Joined Class 4A · Melaka trip');}
+  else{$('joinErr').style.display='block';$('joined').classList.remove('show');} });
+let current='stadthuys'; const mv=$('mv');
+function renderLesson(id){ current=id; S.last=id; save(); const l=LESSONS[id];
+  $('lTitle').textContent=l.title; $('lSub').textContent=l.subject+' · Learn';
+  $('lChips').innerHTML=l.chips.map(c=>`<span class="chip ${c[1]}">${c[0]}</span>`).join('')+`<span class="chip">${l.time}</span>`;
+  $('lTime').textContent=l.time+' read'; $('lFacts').innerHTML=l.facts.map((f,i)=>`<div class="fact"><b>${i+1}</b><span>${f}</span></div>`).join('');
+  if(mv.getAttribute('src')!==l.model) mv.setAttribute('src',l.model);
+  mv.setAttribute('camera-orbit',l.orbit); mv.cameraOrbit=l.orbit; motion(mv); setHotspots(mv,l.hotspots); applyLabels();
+  $('quizBtn').onclick=()=>go('quiz-'+id); }
+$('lblBtn').onclick=()=>{S.labels=!S.labels;save();applyLabels();syncSwitches();};
+$('resetBtn').onclick=()=>{mv.cameraOrbit=LESSONS[current].orbit;mv.jumpCameraToGoal&&mv.jumpCameraToGoal();};
+$('arBtn').onclick=()=>{ if(mv.canActivateAR){try{mv.activateAR();return;}catch(e){}} go('ar-'+current); };
+
+let qi=0,score=0,answered=false;
+function renderQuiz(id,reset=true){ current=id; if(reset){qi=0;score=0;}
+  const q=QUIZ[id]; $('qTitle').textContent='Quiz · '+LESSONS[id].title; $('qSub').textContent='Question '+Math.min(qi+1,3)+' of 3'; $('quizBack').href='#lesson-'+id;
+  const body=$('quizBody');
+  if(qi>=q.length){ const prev=S.best[id]||0; const gained=score*10; S.xp+=gained; if(score>prev) S.best[id]=score; save();
+    const pct=Math.round(score/3*100); const col=score===3?'#16a06a':score===2?'#1f6fd1':'#d0a020';
+    body.innerHTML=`<div class="card result"><div class="ring" style="background:conic-gradient(${col} ${pct}%,#e3e9f2 0)"><div>${score}/3</div></div>
+      <h3 style="font-size:20px;font-weight:800">${score===3?'Excellent!':score===2?'Good job!':'Keep exploring!'}</h3>
+      <p style="color:var(--muted);font-size:13.5px;margin-top:6px">You earned <b>+${gained} XP</b>. In group mode, your teacher sees this score live.</p>
+      ${score>=2?`<div class="badgebig">Badge unlocked: Young Historian</div>`:''}
+      <div style="display:grid;gap:10px;margin-top:18px"><button class="btn primary block" onclick="go('lesson-${id}')">Back to the 3D model</button><button class="btn ghost block" onclick="renderQuiz('${id}')">Try again</button><button class="btn soft block" onclick="go('explore')">Visit it on the trail</button></div></div>`;
+    $('qSub').textContent='Finished'; return; }
+  const [text,opts,ans,why]=q[qi]; answered=false;
+  body.innerHTML=`<div class="qprog">${q.map((_,i)=>`<i class="${i<=qi?'done':''}"></i>`).join('')}</div><div class="qcard"><h3>${text}</h3>${opts.map((o,i)=>`<button class="opt" data-i="${i}"><span>${'ABCD'[i]}</span>${o}</button>`).join('')}<div class="explain" id="explain"></div><button class="btn primary block" id="nextQ" disabled>${qi===2?'See my score':'Next question'}</button></div>`;
+  body.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{ if(answered) return; answered=true; const i=+b.dataset.i;
+    body.querySelectorAll('.opt')[ans].classList.add('correct'); if(i!==ans) b.classList.add('wrong'); else score++;
+    const ex=$('explain'); ex.innerHTML=(i===ans?'<b style="color:#0b6b45">Correct.</b> ':'<b style="color:#b02a2a">Not quite.</b> ')+why; ex.classList.add('show'); $('nextQ').disabled=false; });
+  $('nextQ').onclick=()=>{qi++;renderQuiz(id,false);}; }
+
+/* ---- VR virtual visit ---- */
+const VR={
+  stadthuys:['Stadthuys','Built by the Dutch around 1650 as their town hall and governor’s office. It is one of the oldest Dutch buildings in Asia and now houses the History and Ethnography Museum.'],
+  church:['Christ Church','Completed in 1753 by the Dutch. Its walls were built with bricks shipped from the Netherlands and later painted red, like the rest of the square.'],
+  clock:['Tang Beng Swee Clock Tower','Built in 1886 by Tan Jiak Kim in memory of his father, Tan Beng Swee, a well-known Melaka philanthropist.'],
+  fountain:['Queen Victoria Fountain','Built by the British in the early 1900s in honour of Queen Victoria. It is a favourite meeting point in the square.']
+};
+let vrSeen=new Set();
+function showVR(k){ const d=VR[k]; vrSeen.add(k); $('vrTitle').textContent=d[0]; $('vrText').textContent=d[1];
+  document.querySelectorAll('#vrChips button').forEach(b=>{b.classList.toggle('on',b.dataset.k===k); b.classList.toggle('seen',vrSeen.has(b.dataset.k)&&b.dataset.k!==k);});
+  if(vrSeen.size===4) toast('All 4 landmarks visited · +20 XP'); }
+$('vrChips').innerHTML=Object.entries(VR).map(([k,v])=>`<button data-k="${k}">${v[0].split(' ').slice(0,2).join(' ')}</button>`).join('');
+document.querySelectorAll('#vrChips button').forEach(b=>b.onclick=()=>showVR(b.dataset.k));
+['stadthuys','church','clock','fountain'].forEach(k=>{ const el=$('b-'+k); if(el) el.addEventListener('click',()=>showVR(k)); });
+
+/* ---- group mode ---- */
+function renderGroup(){
+  const data=[['Q1 · Who built the Stadthuys',93,'#16a06a'],['Q2 · Year of Dutch takeover',61,'#d0a020'],['Q3 · UNESCO partner city',82,'#1f6fd1']];
+  $('qbars').innerHTML=data.map(d=>`<div class="qbar"><div class="t"><span>${d[0]}</span><span>${d[1]}% correct</span></div><div class="track"><i style="background:${d[2]}" data-w="${d[1]}"></i></div></div>`).join('');
+  requestAnimationFrame(()=>setTimeout(()=>$('qbars').querySelectorAll('.track i').forEach(i=>i.style.width=i.dataset.w+'%'),60));
+  const pal=['#ffe1b3','#d8e8ff','#e8dcfb','#d6f3e5','#ffd9d6','#fff0c2','#dff4fb','#f1e4d8'];
+  $('studentList').innerHTML=STUDENTS.map((s,i)=>`<div class="st"><div class="ini" style="background:${pal[i]}">${s[0].split(' ').map(x=>x[0]).join('')}</div>${s[0]}<span class="s"><i style="background:${s[2]}"></i>${s[1]}</span></div>`).join('');
+}
+$('pushBtn').onclick=()=>toast('Sent “'+$('pushSel').value.split(' (')[0]+'” to 28 devices');
+$('lockBtn').onclick=()=>{const b=$('lockBtn');b.classList.toggle('on');$('lockTxt').textContent=b.classList.contains('on')?'Screens follow the teacher':'Students can explore freely';toast(b.classList.contains('on')?'All student screens locked to your view':'Screens unlocked');};
+$('quizStart').onclick=()=>toast('Group quiz started on 28 devices');
+$('copyCode').onclick=async()=>{try{await navigator.clipboard.writeText('MLK-4821');toast('Group code copied');}catch(e){toast('Code: MLK-4821');}};
+
+/* ================= 3 Clean & Health ================= */
+const PLACES={
+  toilet:[['A','#e0f5f0','#0b6b45','Public toilet · Kota Road','★★★★★ 4.6','120 m · free · baby-changing room','toilet'],['A','#e0f5f0','#0b6b45','Shopping mall toilets','★★★★☆ 4.3','450 m · inside mall','toilet'],['B','#fff3d6','#8a5a00','Jonker Street public toilet','★★★☆☆ 3.4','600 m · RM0.30 · busy at weekends','toilet'],['C','#fdecec','#b02a2a','Riverside toilet (Morten Village)','★★☆☆☆ 2.1','1.1 km · 9 reports this week','toilet']],
+  food:[['A','#e0f5f0','#0b6b45','Chicken rice ball stall','★★★★★ 4.7','Grade A hygiene · 300 m','food'],['A','#e0f5f0','#0b6b45','Nyonya restaurant, Heeren Street','★★★★☆ 4.4','Grade A hygiene · 500 m','food'],['B','#fff3d6','#8a5a00','Jonker night-market dessert stall','★★★★☆ 4.1','Grade B hygiene · 650 m','food']],
+  clinic:[['+','#e4f1fb','#0d4fa3','Government health clinic','Open now','1.4 km · walk-in','clinic'],['+','#e4f1fb','#0d4fa3','24-hour pharmacy','Open 24 h','550 m','clinic'],['+','#fdecec','#b02a2a','Hospital emergency department','Emergency: call 999','2.3 km','clinic']]
+};
+function setCleanTab(t){ document.querySelectorAll('#cleanSeg button').forEach(b=>b.classList.toggle('on',b.dataset.c===t));
+  $('reportBox').style.display=t==='report'?'block':'none'; $('cleanList').style.display=t==='report'?'none':'grid';
+  if(t!=='report') $('cleanList').innerHTML=PLACES[t].map(p=>`<div class="pitem"><div class="grade" style="background:${p[1]};color:${p[2]}">${p[0]}</div><div class="info"><b>${p[3]}</b><span class="stars">${p[4]}</span><br><small>${p[5]}</small></div><button class="go" onclick="go('ar-${p[6]==='toilet'?'toilet':'clinic'}')">AR guide</button></div>`).join(''); }
+document.querySelectorAll('#cleanSeg button').forEach(b=>b.onclick=()=>setCleanTab(b.dataset.c));
+document.querySelectorAll('#repCat button').forEach(b=>b.onclick=()=>document.querySelectorAll('#repCat button').forEach(x=>x.classList.toggle('on',x===b)));
+$('photoIn').onchange=e=>{const f=e.target.files&&e.target.files[0]; if(!f) return; const url=URL.createObjectURL(f); $('photoLbl').style.backgroundImage=`url(${url})`; $('photoTxt').textContent='';};
+$('sendRep').onclick=()=>{ const cat=document.querySelector('#repCat button.on').textContent; S.report=true; S.xp+=15; save();
+  $('repStatus').style.display='block';
+  $('repStatus').innerHTML=`<b style="font-size:13.5px">Report #MLK-1043 · ${cat}</b><div class="timeline"><div class="done"><i></i>Sent to the local council</div><div class="done"><i></i>Visible to other visitors on the map</div><div><i></i>Cleaning crew assigned</div><div><i></i>Fixed · you will be notified</div></div><p class="sample" style="text-align:left;margin-top:10px">Prototype · report is saved on this device only</p>`;
+  toast('Thank you! +15 XP · badge: Clean Champion'); };
+
+/* ================= 4 Shop Local ================= */
+const PRODUCTS={
+  kasut:{name:'Nyonya Beaded Slippers',cat:'Peranakan craft',seller:'Sold by Nyonya Beads Studio, Jonker Street (sample seller)',price:'RM 380',model:'models/kasut-manik.glb',orbit:'40deg 65deg 105%',
+    story:'Hand-beaded slippers made by Baba Nyonya (Peranakan) artisans, with thousands of tiny glass beads sewn by hand.',
+    opts:'<div class="optlabel">EU size</div><div class="optrow" data-sel><button>36</button><button class="on">37</button><button>38</button><button>39</button></div>',
+    fit:'AR shows the slipper at real size. Colours may look slightly different on screen; check the size chart before buying.',hs:[['Glass-bead flowers','0.06 0.06 0.02','l'],['Padded sole','-0.09 0.02 0.03']]},
+  tingkat:{name:'Nyonya Enamel Tiffin Carrier',cat:'Nyonya kitchenware',seller:'Sold by Heeren Street Heritage Store (sample seller)',price:'RM 95',model:'models/tingkat.glb',orbit:'30deg 70deg 105%',
+    story:'Stacked food carriers used by Nyonya families to carry home-cooked meals, decorated in classic pink and green.',
+    opts:'<div class="optlabel">Tiers</div><div class="optrow" data-sel><button>3</button><button class="on">4</button><button>5</button></div>',
+    fit:'Place it on your table in AR to check its size (about 40 cm tall with handle).',hs:[['Enamel tiers','0.09 0.2 0'],['Brass handle','0 0.39 0']]},
+  gula:{name:'Melaka Palm Sugar',cat:'Local food',seller:'Sold by Morten Village Producers (sample seller)',price:'RM 12',model:'models/gula-melaka.glb',orbit:'30deg 62deg 110%',
+    story:'Traditional coconut palm sugar, the sweet heart of many Malaysian desserts.',
+    opts:'<div class="optlabel">Pack</div><div class="optrow" data-sel><button class="on">500 g</button><button>1 kg</button></div>',
+    fit:'Food item: check the halal and best-before information on the pack.',hs:[['Palm sugar blocks','0.06 0.09 -0.05']]}
+};
+let prod='kasut'; const mvShop=$('mvShop');
+function setProd(p){prod=p; const d=PRODUCTS[p];
+  document.querySelectorAll('#prodSeg button').forEach(b=>b.classList.toggle('on',b.dataset.p===p));
+  $('prodName').textContent=d.name;$('prodCat').textContent=d.cat;$('prodSeller').textContent=d.seller;$('prodPrice').textContent=d.price;$('prodStory').textContent=d.story;
+  $('prodOpts').innerHTML=d.opts;$('fitNote').textContent=d.fit;
+  mvShop.setAttribute('src',d.model);mvShop.setAttribute('camera-orbit',d.orbit);mvShop.cameraOrbit=d.orbit;setHotspots(mvShop,d.hs);motion(mvShop);
+  $('prodOpts').querySelectorAll('[data-sel] button').forEach(b=>b.onclick=()=>b.parentNode.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)));}
+document.querySelectorAll('#prodSeg button').forEach(b=>b.onclick=()=>setProd(b.dataset.p));
+$('prodAR').onclick=()=>{ if(mvShop.canActivateAR){try{mvShop.activateAR();return;}catch(e){}} go('ar-'+prod); };
+$('findShop').onclick=()=>toast('Shop is 400 m away on Jonker Street · open until 9 pm');
+$('shareAR').onclick=async()=>{const url=location.href.split('#')[0]+'#shop';try{await navigator.clipboard.writeText(url);toast('AR link copied · paste it in WhatsApp or social media');}catch(e){toast('AR link ready to share');}};
+$('capBtn').onclick=()=>{const p=$('pipeline');p.classList.add('show');const st=p.querySelectorAll('.pstep');st.forEach(x=>x.classList.remove('done'));
+  st.forEach((x,i)=>setTimeout(()=>{x.classList.add('done'); if(i===st.length-1) toast('3D model ready · AR link created');},700*(i+1)));};
+
+/* ================= 5 Safety ================= */
+function setFloodTab(t){document.querySelectorAll('#floodSeg button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  ['map','ar','drill'].forEach(x=>$('fp-'+x).style.display=x===t?'block':'none'); if(t==='drill') renderDrill(true);}
+document.querySelectorAll('#floodSeg button').forEach(b=>b.onclick=()=>setFloodTab(b.dataset.t));
+function drawFloodMap(){
+  let s=`<rect width="340" height="190" fill="#eef1e6"/>`;
+  s+=`<path d="M0 120 C60 100 110 150 170 128 S270 90 340 112 L340 190 L0 190Z" fill="#e53935" opacity=".16"/>`;
+  s+=`<path d="M0 138 C60 118 110 168 170 146 S270 108 340 130" stroke="#5aa9e6" stroke-width="14" fill="none" stroke-linecap="round"/>`;
+  s+=`<text x="250" y="150" font-size="9" font-weight="700" fill="#2b6fa8">Melaka River</text><text x="200" y="182" font-size="9" font-weight="800" fill="#c62828">Flood-risk zone</text>`;
+  s+=`<path d="M20 30 H320 M60 0 V190 M200 0 V110 M20 80 H330" stroke="#fff" stroke-width="7"/>`;
+  s+=`<path d="M100 104 C100 80 130 70 160 60 S230 40 262 36" stroke="#16a06a" stroke-width="4" fill="none" stroke-dasharray="7 5" stroke-linecap="round"/>`;
+  s+=`<circle cx="100" cy="106" r="14" fill="#1f6fd1" opacity=".18"/><circle cx="100" cy="106" r="6" fill="#1f6fd1" stroke="#fff" stroke-width="2.5"/><text x="100" y="128" font-size="9" font-weight="800" text-anchor="middle" fill="#1f4f8f">You (hotel)</text>`;
+  s+=`<rect x="240" y="20" width="46" height="22" rx="6" fill="#16a06a"/><text x="263" y="35" font-size="9.5" font-weight="800" text-anchor="middle" fill="#fff">Relief</text><text x="263" y="56" font-size="8.5" font-weight="700" text-anchor="middle" fill="#0b6b45">1.2 km</text>`;
+  s+=`<rect x="140" y="160" width="20" height="10" rx="3" fill="#fb8c00"/><text x="164" y="168" font-size="8" font-weight="700" fill="#7a3e00">Riverside path closed</text>`;
+  $('floodMap').innerHTML=s;
+}
+const CHECK=['Passport or IC in a waterproof bag','Phone, charger and power bank','Medicine and prescriptions','Drinking water and snacks','Emergency number 999 and hotel contact saved'];
+function drawChecklist(){ const done=S.check||[]; $('checklist').innerHTML=CHECK.map((c,i)=>`<button class="chk ${done.includes(i)?'on':''}" data-i="${i}"><i></i>${c}</button>`).join('');
+  $('chkCount').textContent=done.length+' of 5 ready';
+  $('checklist').querySelectorAll('.chk').forEach(b=>b.onclick=()=>{const i=+b.dataset.i;S.check=S.check||[];S.check=S.check.includes(i)?S.check.filter(x=>x!==i):[...S.check,i];save();drawChecklist();});}
+function drawWater(cm){
+  const g=200, px=cm*0.8, top=g-px;
+  let s=`<svg viewBox="0 0 340 220"><rect width="340" height="220" fill="#cfe3f3"/><rect y="${g}" width="340" height="20" fill="#9c9284"/>`;
+  s+=`<rect x="150" y="80" width="150" height="120" fill="#c4553f"/><path d="M140 82 L225 30 L310 82Z" fill="#5a2a20"/><rect x="170" y="130" width="34" height="70" fill="#5b3a22"/><rect x="230" y="105" width="44" height="34" fill="#f4efe6" stroke="#fff" stroke-width="3"/>`;
+  s+=`<rect x="70" y="${g-34}" width="66" height="22" rx="7" fill="#1f6fd1"/><rect x="82" y="${g-48}" width="40" height="18" rx="6" fill="#5b8fd8"/><circle cx="84" cy="${g-10}" r="9" fill="#333"/><circle cx="124" cy="${g-10}" r="9" fill="#333"/>`;
+  s+=`<circle cx="42" cy="${g-118}" r="9" fill="#e0b48a"/><rect x="34" y="${g-108}" width="16" height="50" rx="6" fill="#c0392b"/><rect x="35" y="${g-60}" width="6" height="60" fill="#33445c"/><rect x="43" y="${g-60}" width="6" height="60" fill="#33445c"/>`;
+  s+=`<text x="58" y="${g-122}" font-size="8" font-weight="700" fill="#33445c">1.6 m</text>`;
+  if(cm>0) s+=`<path d="M0 ${top} q20 -5 40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 V220 H0Z" fill="#7a6a4a" opacity=".62"/><path d="M0 ${top} q20 -5 40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0" stroke="#e8dcc0" stroke-width="2" fill="none"/>`;
+  [15,30,60,100].forEach(h=>{const y=g-h*0.8; s+=`<line x1="4" y1="${y}" x2="16" y2="${y}" stroke="#0f1b2d" stroke-width="1.5"/><text x="19" y="${y+3}" font-size="7.5" font-weight="800" fill="#0f1b2d">${h}</text>`;});
+  s+=`<rect x="8" y="8" width="96" height="20" rx="10" fill="rgba(15,27,45,.75)"/><text x="56" y="22" font-size="9.5" font-weight="800" text-anchor="middle" fill="#fff">AR · ${cm} cm water</text></svg>`;
+  $('waterScene').innerHTML=s; $('wVal').textContent=cm+' cm';
+  const m=cm>=100?['#b71c1c','Ground floor flooded. Follow official instructions and move to the relief centre or an upper floor now.']:cm>=60?['#c62828','60 cm of moving water can sweep away SUVs and trucks.']:cm>=30?['#d84315','30 cm of moving water can carry away most cars. Never drive through flood water.']:cm>=15?['#e65100','15 cm of moving water can knock an adult off their feet. Do not walk through it.']:cm>0?['#8d6e00','Shallow water can still hide open drains and holes. Avoid walking through it.']:['#2e7d32','No water on the street right now.'];
+  $('wMsg').style.color=m[0]; $('wMsg').textContent=m[1];
+}
+$('wSlider').oninput=e=>drawWater(+e.target.value);
+const DRILL=[
+  ['You are at your hotel when a flood warning is issued. What do you do first?',['Go to the river to take photos','Follow hotel and official instructions and move to a higher floor','Drive out of the city straight away'],1,'Staying calm and following official instructions keeps you away from rising water and blocked roads.'],
+  ['Your route to the relief centre has 30 cm of fast-flowing water. What now?',['Walk through it carefully','Drive through quickly','Turn back and take the higher route'],2,'Moving water this deep can knock you down or float a car. Always use the higher route.'],
+  ['What should you keep with you?',['Passport or IC, phone and power bank, medicine and water','Your souvenirs','Nothing, so you can move faster'],0,'Your documents and essentials keep you safe and help you contact family and your embassy.']
+];
+let di=0,dscore=0;
+function renderDrill(reset){ if(reset){di=0;dscore=0;}
+  const box=$('drillBox');
+  if(di>=DRILL.length){ if(dscore===3){S.drill=3;save();}
+    box.innerHTML=`<div class="result" style="padding:10px"><div class="ring" style="background:conic-gradient(${dscore===3?'#16a06a':'#d35400'} ${dscore/3*100}%,#e3e9f2 0)"><div>${dscore}/3</div></div><h3 style="font-size:18px;font-weight:800">${dscore===3?'You are flood-ready!':'Practise again to be ready'}</h3><p style="font-size:13px;color:var(--muted);margin-top:6px">Safe decisions: ${dscore} of 3.</p><button class="btn primary block" style="margin-top:14px" onclick="renderDrill(true)">Restart drill</button></div>`; return; }
+  const [q,o,a,why]=DRILL[di];
+  box.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span class="chip" style="background:#fdeee2;color:#a03f00">Flash-flood drill · step ${di+1} of 3</span><span style="font-size:12px;font-weight:700;color:var(--muted)">Score ${dscore}</span></div><h3 style="font-size:16px;font-weight:800;line-height:1.35;margin-bottom:12px">${q}</h3>${o.map((t,i)=>`<button class="opt" data-i="${i}"><span>${'ABC'[i]}</span>${t}</button>`).join('')}<div class="explain" id="dExp"></div><button class="btn primary block" id="dNext" disabled>${di===2?'See result':'Next step'}</button>`;
+  let done=false;
+  box.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{ if(done)return; done=true; const i=+b.dataset.i; box.querySelectorAll('.opt')[a].classList.add('correct'); if(i!==a) b.classList.add('wrong'); else dscore++;
+    const ex=$('dExp'); ex.innerHTML=(i===a?'<b style="color:#0b6b45">Safe choice.</b> ':'<b style="color:#b02a2a">Unsafe.</b> ')+why; ex.classList.add('show'); $('dNext').disabled=false; });
+  $('dNext').onclick=()=>{di++;renderDrill(false);};
+}
+
+/* ================= Me ================= */
+function syncSwitches(){$('swMotion').classList.toggle('on',S.reduce);$('swLabels').classList.toggle('on',S.labels);}
+function renderMe(){
+  $('xpOut').textContent=S.xp; $('stOut').textContent=S.stamps+'/5'; $('qzOut').textContent=Object.keys(S.best).length+'/3';
+  const got=b=>b[0]==='explorer'?S.stamps>=3:b[0]==='historian'?Object.values(S.best).some(v=>v>=2):b[0]==='clean'?S.report:S.drill===3;
+  $('badges').innerHTML=BADGES.map(b=>`<div class="bdg ${got(b)?'got':''}"><div class="ico" style="background:${got(b)?b[2]:''}">${b[3]}</div>${b[1]}</div>`).join('');
+  $('bdgCount').textContent=BADGES.filter(got).length+' of 4 unlocked'; syncSwitches();
+}
+$('swMotion').onclick=()=>{S.reduce=!S.reduce;save();syncSwitches();[mv,mvFort,mvShop].forEach(motion);toast(S.reduce?'Reduce motion on':'Reduce motion off');};
+$('swLabels').onclick=()=>{S.labels=!S.labels;save();syncSwitches();applyLabels();};
+$('resetProgress').onclick=()=>{Object.assign(S,{xp:0,best:{},stamps:2,report:false,drill:0,check:[]});save();renderMe();drawTrail();drawChecklist();toast('Progress reset');};
+
+/* ================= AR overlay ================= */
+const mvAR=$('mvAR'); let arTimers=[];
+const ARCFG={
+  fort:{title:'AR · A Famosa in 1512',model:'models/fort-1512.glb',bg:'site',orbit:'25deg 70deg 125%',back:'explore',hotspots:[['Keep tower','-0.2 1.6 -0.2'],['Gate house','0 0.52 1.0']],
+    note:'At the real site, geospatial AR anchors the 1512 fortress around the surviving gate. This browser cannot open the camera, so this is a preview of that screen.',
+    find:'Point your camera at the Porta de Santiago gate',found:'Gate recognised · tap Rebuild fort',placed:'Walk around to see the fort as it stood in 1512',place:'Rebuild fort'},
+  toilet:{title:'AR guide · Clean toilet',nav:true,bg:'site',back:'clean',pin:'Public toilet · ★4.6 · Grade A · 120 m',
+    note:'Preview of AR navigation. On a phone, arrows and ratings are drawn on the real street through the camera.',
+    find:'Hold your phone up to see the way',found:'Route ready · tap Start',placed:'Go straight 80 m, then turn right',place:'Start'},
+  clinic:{title:'AR guide · Clinic',nav:true,bg:'site',back:'clean',pin:'Health clinic · open now · 1.4 km',
+    note:'Preview of AR navigation to health services.',find:'Hold your phone up to see the way',found:'Route ready · tap Start',placed:'Turn left at the junction · 1.4 km',place:'Start'},
+  route:{title:'AR directions · Relief centre',nav:true,bg:'site',back:'safety',pin:'Relief centre · Community Hall · 1.2 km',
+    note:'Preview of AR navigation. On a phone, arrows are drawn on the real street through the camera.',
+    find:'Hold your phone up to see the safe route',found:'Route ready · tap Start',placed:'Turn left in 80 m · relief centre in 1.2 km',place:'Start'}
+};
+let arBack='home', arCfg=null;
+function arConfig(key){
+  if(ARCFG[key]) return ARCFG[key];
+  if(LESSONS[key]){const l=LESSONS[key]; return {title:'AR · '+l.title,model:l.model,bg:'desk',orbit:'30deg 62deg 150%',back:'lesson-'+key,hotspots:l.hotspots,
+    find:'Move your phone slowly to find a flat surface',found:'Surface found · tap Place model',placed:'Placed on your table · walk around it to explore',place:'Place model'};}
+  const p=PRODUCTS[key]; return {title:'AR · '+p.name.split(' (')[0],model:p.model,bg:key==='kasut'?'room':'desk',orbit:'30deg 62deg 420%',back:'shop',hotspots:[],
+    find:'Move your phone slowly to find a flat surface',found:'Surface found · tap Place',placed:'Shown at real size',place:'Place'};
+}
+function openAR(key){ const c=arConfig(key); arCfg=c; arBack=c.back;
+  const av=$('arview'); av.className='arview active bg-'+c.bg+(c.nav?' navmode':'')+(S.labels?'':' nolabels');
+  $('arTitle').textContent=c.title;
+  $('arNote').textContent=c.note||'This browser cannot open the camera, so this is a preview of the AR screen. On an AR-capable phone, “View in AR” places the model in your real space.';
+  if(c.model){mvAR.setAttribute('src',c.model); mvAR.setAttribute('camera-orbit',c.orbit); mvAR.cameraOrbit=c.orbit;}
+  setHotspots(mvAR,c.hotspots||[]); const pin=document.querySelector('.navpin'); if(pin&&c.pin) pin.textContent=c.pin;
+  $('arPlace').textContent=c.place; $('arPlace').disabled=true; $('arPillTxt').textContent=c.find;
+  arTimers.forEach(clearTimeout); arTimers=[];
+  arTimers.push(setTimeout(()=>{av.classList.add('found');$('arPillTxt').textContent=c.found;$('arPlace').disabled=false;},1600)); }
+$('arPlace').onclick=()=>{$('arview').classList.add('placed');$('arPillTxt').textContent=arCfg.placed;$('arPlace').disabled=true;};
+$('arReset').onclick=()=>openAR((location.hash||'').replace('#ar-',''));
+$('arLabels').onclick=()=>{S.labels=!S.labels;save();applyLabels();syncSwitches();};
+$('arClose').onclick=()=>go(arBack);
+
+/* ================= router ================= */
+function route(){
+  const h=(location.hash||'#home').slice(1); let view='home',tab='home';
+  $('arview').classList.remove('active');
+  if(h.startsWith('lesson-')&&LESSONS[h.slice(7)]){view='lesson';tab='learn';renderLesson(h.slice(7));}
+  else if(h.startsWith('quiz-')&&QUIZ[h.slice(5)]){view='quiz';tab='learn';renderQuiz(h.slice(5));}
+  else if(h.startsWith('ar-')){const k=h.slice(3);
+    if(LESSONS[k]){view='lesson';tab='learn';renderLesson(k);openAR(k);}
+    else if(PRODUCTS[k]){view='shop';setProd(k);openAR(k);}
+    else if(ARCFG[k]){view={fort:'explore',toilet:'clean',clinic:'clean',route:'safety'}[k];tab={fort:'explore',route:'safety'}[k]||'home';openAR(k);} }
+  else if(h==='explore'){view='explore';tab='explore';}
+  else if(h==='learn'){view='learn';tab='learn';renderLearn();}
+  else if(h==='vr'){view='vr';tab='learn';}
+  else if(h==='group'){view='group';tab='learn';renderGroup();}
+  else if(h==='clean'){view='clean';}
+  else if(h==='shop'){view='shop';}
+  else if(h==='safety'){view='safety';tab='safety';}
+  else if(h==='me'){view='me';tab='me';renderMe();}
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='v-'+view));
+  document.querySelectorAll('nav.tabs a').forEach(a=>a.classList.toggle('on',a.dataset.tab===tab));
+  if(!h.startsWith('ar-')) $('main').scrollTop=0;
+  if(view==='vr') setTimeout(()=>window.dispatchEvent(new Event('resize')),30);
+}
+window.addEventListener('hashchange',route);
+drawTrail(); setEra('1512'); setLang('en'); setCleanTab('toilet'); setProd('kasut'); drawFloodMap(); drawChecklist(); drawWater(30); renderLearn();
+applyLabels(); route();
+
+</script>
+</body>
+</html>
